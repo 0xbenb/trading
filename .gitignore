@@ -1,3 +1,5 @@
 .DS_Store
 .idea/
 .envrc
+config/
+__pycache__/
