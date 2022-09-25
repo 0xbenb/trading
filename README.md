@@ -20,7 +20,7 @@ BINANCE_SECRET_KEY=<br />
 
 ## Project Structure (working progress)
 ```
-├── CoreFunctions.py          // Contains functions used across scripts
+├── **CoreFunctions.py**          // Contains functions used across scripts
 ├── UniverseCreation.py       // Aligns trading venues with coingecko top 100 
 ├── DataCleaning              // Directory containing scripts for cleaning data
 ├── DataCollection            // Directory containing scripts for collecting data
