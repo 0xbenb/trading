@@ -1,6 +1,6 @@
 # trading
 
-This project is a top 100 trading strategy starting only with binance deployed onto a Ubuntu 20.04.5 server. 
+This project is a top 100 trading strategy on binance. It is deployed onto a Ubuntu 20.04.5 server. 
 
 ## Project setup / config 
 
