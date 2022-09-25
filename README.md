@@ -20,13 +20,13 @@ BINANCE_SECRET_KEY=<br />
 
 ## Project Structure (working progress)
 ```
-├── CoreFunctions.py
-├── UniverseCreation.py
-├── DataCleaning
-├── DataCollection
-│   └── BinanceOHLCV.py
-├── Deployment
-├── EDA
-├── Model
-├── requirements.txt
+├── CoreFunctions.py          // Contains functions used across scripts
+├── UniverseCreation.py       // Aligns trading venues with coingecko top 100 
+├── DataCleaning              // Directory containing scripts for cleaning data
+├── DataCollection            // Directory containing scripts for collecting data
+│   └── BinanceOHLCV.py       // Collecting OHLCV data from Binance 
+├── Deployment                // Director for Deploying strategy
+├── EDA                       // Directory containing Exploratory Data Analysis 
+├── Model                     // Directory for building models 
+├── requirements.txt          // Project requirements 
 ```
