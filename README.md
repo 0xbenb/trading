@@ -6,7 +6,7 @@ This python project is a top 100 trading strategy on binance. It is deployed ont
 
 ## Project setup / config 
 
-To configure, create a .envrc file containing Database and Exchange Keys laid out as so:
+To configure, create a .envrc file containing Database connection details and Exchange Keys laid out as so:
 
 DB_USER=<br />
 DB_PW=<br />
