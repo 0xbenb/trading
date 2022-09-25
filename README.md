@@ -22,11 +22,11 @@ BINANCE_SECRET_KEY=<br />
 ```
 ├── CoreFunctions.py
 ├── UniverseCreation.py
-├── **DataCleaning**
-├── **DataCollection**
+├── DataCleaning
+├── DataCollection
 │   └── BinanceOHLCV.py
-├── **Deployment**
-├── **EDA**
-├── **Model**
+├── Deployment
+├── EDA
+├── Model
 ├── requirements.txt
 ```
