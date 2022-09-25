@@ -4,6 +4,19 @@ This is a top 100 Digital Asset trading strategy. Written in Python, it is a sin
 
 <br />
 
+## Project Structure (To Date)
+<pre>
+├── CoreFunctions.py                  // Contains functions used across scripts
+├── UniverseCreation.py               // Aligns trading venues with coingecko top 100 
+├── <b>DataCleaning</b>               // Directory containing scripts for cleaning data
+├── <b>DataCollection</b>             // Directory containing scripts for collecting data
+│   └── BinanceOHLCV.py               // Collecting OHLCV data from Binance 
+├── <b>Deployment</b>                 // Director for Deploying strategy
+├── <b>EDA</b>                        // Directory containing Exploratory Data Analysis 
+├── <b>Model</b>                      // Directory for building models 
+├── requirements.txt                  // Project requirements 
+</pre>
+
 ## Project Setup / Config 
 
 To configure, create a .envrc file containing Database connection details and Exchange Keys laid out as so:
@@ -18,16 +31,5 @@ BINANCE_SECRET_KEY=<br />
 
 <br />
 
-## Project Structure (working progress)
-<pre>
-├── CoreFunctions.py                  // Contains functions used across scripts
-├── UniverseCreation.py               // Aligns trading venues with coingecko top 100 
-├── <b>DataCleaning</b>               // Directory containing scripts for cleaning data
-├── <b>DataCollection</b>             // Directory containing scripts for collecting data
-│   └── BinanceOHLCV.py               // Collecting OHLCV data from Binance 
-├── <b>Deployment</b>                 // Director for Deploying strategy
-├── <b>EDA</b>                        // Directory containing Exploratory Data Analysis 
-├── <b>Model</b>                      // Directory for building models 
-├── requirements.txt                  // Project requirements 
-</pre>
+
 
