@@ -22,7 +22,7 @@ BINANCE_SECRET_KEY=<br />
 ```
 ├── CoreFunctions.py          // Contains functions used across scripts
 ├── UniverseCreation.py       // Aligns trading venues with coingecko top 100 
-├── DataCleaning              // Directory containing scripts for cleaning data
+├── <b>DataCleaning<b>              // Directory containing scripts for cleaning data
 ├── DataCollection            // Directory containing scripts for collecting data
 │   └── BinanceOHLCV.py       // Collecting OHLCV data from Binance 
 ├── Deployment                // Director for Deploying strategy
