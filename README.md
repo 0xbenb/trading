@@ -19,6 +19,7 @@ BINANCE_SECRET_KEY=<br />
 <br />
 
 ## Project Structure (working progress)
+```
 ├── CoreFunctions.py<br />
 ├── UniverseCreation.py<br />
 ├── **DataCleaning**<br />
@@ -28,60 +29,4 @@ BINANCE_SECRET_KEY=<br />
 ├── **EDA**<br />
 ├── **Model**<br />
 ├── requirements.txt<br />
-
-
-formatTreeString(
-  {
-    text: 'first',
-    extra: 'extra',
-    children: [
-      {
-        text: 'second',
-        extra: 'another'
-      },
-      {
-        text: 'third',
-        children: [
-          {
-            text: 'fourth',
-            extra: 'yet'
-          },
-          {
-            text: 'fifth'
-          },
-          {
-            text: 'sixth',
-            extra: 'another',
-            children: [
-              {
-                text: 'seventh',
-                extra: 'one'
-              },
-              {
-                text: 'eighth',
-                extra: 'look',
-                children: [
-                  {
-                    text: 'ninth',
-                    extra: 'another'
-                  },
-                  {
-                    text: 'tenth',
-                    extra: 'one'
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        text: 'eleventh',
-        extra: 'yay'
-      }
-    ]
-  },
-  {
-    guideFormat: chalk.dim
-  }
-);
+```
