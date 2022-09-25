@@ -17,6 +17,8 @@ This is a top 100 Digital Asset trading strategy. Written in Python, it is a sin
 ├── requirements.txt                  // Project requirements 
 </pre>
 
+<br />
+
 ## Project Setup / Config 
 
 To configure, create a .envrc file containing Database connection details and Exchange Keys laid out as so:
