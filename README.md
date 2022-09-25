@@ -1,4 +1,5 @@
 # 
+```
    __                               __  __                     
   |  \                             |  \|  \                    
  _| $$_     ______   ______    ____| $$ \$$ _______    ______  
@@ -11,7 +12,7 @@
                                                      |  \__| $$
                                                       \$$    $$
                                                        \$$$$$$ 
-
+```                                                       
 
 This is a top 100 Digital Asset trading strategy. Written in Python, it is a single exchange CEX strategy (Binance). The code scales to most exchanges (those supported by ccxt). It is deployed onto a Ubuntu 20.04.5 server. TimescaleDB extension is used for PostgreSQL database.
 
