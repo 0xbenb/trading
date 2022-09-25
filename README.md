@@ -23,13 +23,13 @@ This is a top 100 Digital Asset trading strategy. Written in Python, it is a sin
 
 To configure, create a .envrc file containing Database connection details and Exchange Keys laid out as so:
 ```
-DB_USER=<br />
-DB_PW=<br />
-DB_HOST=<br />
-DB_PORT=<br />
-DATABASE=<br />
-BINANCE_API_KEY=<br /> 
-BINANCE_SECRET_KEY=<br />
+DB_USER=
+DB_PW=
+DB_HOST=
+DB_PORT=
+DATABASE=
+BINANCE_API_KEY=
+BINANCE_SECRET_KEY=<
 ```
 
 
