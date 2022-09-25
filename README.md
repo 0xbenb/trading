@@ -6,8 +6,8 @@ This project is a top 100 trading strategy starting only with binance deployed o
 
 To configure, create a .envrc file containing Database and Exchange Keys laid out as so:
 
-DB_USER=
-DB_PW=
+DB_USER=/n
+DB_PW=/n
 DB_HOST=
 DB_PORT=
 DATABASE=
