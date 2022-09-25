@@ -107,6 +107,31 @@ def Create_Database_Table(table_name: str, db_engine, db_conn):
             # cur.execute(q)
             # db_conn.commit()
 
+        if table_name == 'binance_ohlcv':
+            q = """
+            create table binance_ohlcv(
+            time timestamptz NOT NULL, 
+            symbol text NOT NULL, 
+            timeframe text NOT NULL, 
+            o numeric, 
+            h numeric, 
+            l numeric, 
+            c numeric, 
+            volume numeric
+            )
+            """
+            cur.execute(q)
+            # cur.execute('rollback')
+            db_conn.commit()
+
+            q = f"""SELECT create_hypertable('{table_name}','time');"""
+            cur.execute(q)
+            db_conn.commit()
+
+            q = f"""CREATE UNIQUE INDEX {table_name}_index on {table_name}(time,symbol,timeframe);"""
+            cur.execute(q)
+            db_conn.commit()
+
 
 def pop(data: pd.DataFrame, table_name: str, db_conn):
     """
@@ -126,9 +151,14 @@ def pop(data: pd.DataFrame, table_name: str, db_conn):
     cur.copy_from(output, table_name, null="")  # null values become ''
     db_conn.commit()
 
-    db_conn.close()
+    db_conn.close() # might need to stop closing my connection if i want to keep it open
 
 
+def DB_Table_Info(table_name: str, db_engine):
 
+    q = f"select min(time) start_t, max(time) end_t, symbol from {table_name} group by symbol"
+    db_table = pd.read_sql_query(q, con=db_engine)
+
+    return db_table
 
 

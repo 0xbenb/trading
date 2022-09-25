@@ -3,3 +3,5 @@
 .envrc
 config/
 __pycache__/
+tmp 
+dat
