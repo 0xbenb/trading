@@ -1,6 +1,6 @@
 # trading
 
-This is a top 100 Digital Asset trading strategy. Written in Python, it is a single exchange strategy for now (Binance). Down the line the code scales to any exchange supported by ccxt. It is deployed onto a Ubuntu 20.04.5 server. TimescaleDB extension is used for PostgreSQL database.
+This is a top 100 Digital Asset trading strategy. Written in Python, it is a single exchange strategy for now (Binance). The code can scale to most exchanges (supported by ccxt). It is deployed onto a Ubuntu 20.04.5 server. TimescaleDB extension is used for PostgreSQL database.
 
 <br />
 
