@@ -23,17 +23,11 @@ BINANCE_SECRET_KEY=<br />
 ├── CoreFunctions.py          // Contains functions used across scripts
 ├── UniverseCreation.py       // Aligns trading venues with coingecko top 100 
 ├── <b>DataCleaning</b>              // Directory containing scripts for cleaning data
-├── DataCollection            // Directory containing scripts for collecting data
+├── <b>DataCollection</b>             // Directory containing scripts for collecting data
 │   └── BinanceOHLCV.py       // Collecting OHLCV data from Binance 
-├── Deployment                // Director for Deploying strategy
-├── EDA                       // Directory containing Exploratory Data Analysis 
-├── Model                     // Directory for building models 
+├── <b>Deployment</b>                 // Director for Deploying strategy
+├── <b>EDA</b>                        // Directory containing Exploratory Data Analysis 
+├── <b>Model</b>                      // Directory for building models 
 ├── requirements.txt          // Project requirements 
 </pre>
-<pre>
-sample <b>sample</b> sample
-├── CoreFunctions.py          // Contains functions used across scripts
-├── UniverseCreation.py       // Aligns trading venues with coingecko top 100 
-├── DataCleaning              // Directory containing scripts for cleaning data
-├── DataCollection 
-</pre>
+
