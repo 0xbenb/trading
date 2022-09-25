@@ -19,12 +19,12 @@ BINANCE_SECRET_KEY=<br />
 <br />
 
 ## Project Structure (working progress)
-├── CoreFunctions.py
-├── UniverseCreation.py
-├── **DataCleaning**
-├── **DataCollection**
-│   └── BinanceOHLCV.py
-├── **Deployment**
-├── **EDA**
-├── **Model**
-├── requirements.txt
+├── CoreFunctions.py<br />
+├── UniverseCreation.py<br />
+├── **DataCleaning**<br />
+├── **DataCollection**<br />
+│   └── BinanceOHLCV.py<br />
+├── **Deployment**<br />
+├── **EDA**<br />
+├── **Model**<br />
+├── requirements.txt<br />
