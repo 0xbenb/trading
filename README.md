@@ -9,7 +9,7 @@ This is a top 100 Digital Asset trading strategy. Written in Python, it is a sin
 <pre>
 
 ├── UniverseCreation.py               // Aligns trading venues with coingecko top 100
-├── <b>DataPrep</b>               // Directory containing scripts for cleaning data
+├── <b>DataPrep</b>                   // Directory containing scripts for data cleaning & preparation
 ├── <b>DataCollection</b>             // Directory containing scripts for collecting data
 │   └── BinanceOHLCV.py               // Collecting OHLCV data from Binance
 ├── <b>Deployment</b>                 // Director for Deploying strategy
