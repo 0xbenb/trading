@@ -31,11 +31,7 @@ onto a Ubuntu 20.04.5 server. TimescaleDB extension is used for PostgreSQL datab
 ## Project Setup / Config 
 
 To configure, create a .envrc file containing Database connection details and Exchange Keys laid out as so:
-=======
-## Project Setup / Config
 
-To configure, create a .envrc file containing Database connection details and Exchange Keys laid out 
-as so:
 ```
 DB_USER=
 DB_PW=
