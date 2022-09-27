@@ -9,11 +9,16 @@ This is a top 100 Digital Asset trading strategy. Written in Python, it is a sin
 <pre>
 
 ├── UniverseCreation.py               // Aligns trading venues with coingecko top 100
+├── CoreFunctions.py                  // Contains functions used across all programs 
 ├── <b>DataPrep</b>                   // Directory containing scripts for data cleaning & preparation
+│   └── InputPrep.py                  // Preparing predictor variables
+│   └── OutputPrep.py                 // Preparing output variables
 ├── <b>DataCollection</b>             // Directory containing scripts for collecting data
 │   └── BinanceOHLCV.py               // Collecting OHLCV data from Binance
 ├── <b>Deployment</b>                 // Director for Deploying strategy
 ├── <b>EDA</b>                        // Directory containing Exploratory Data Analysis
+│   └── ResearchFunctions.py          // Contains functions used across research programs
+│   └── Research.py                   // Contains research programs
 ├── <b>Model</b>                      // Directory for building models
 ├── requirements.txt                  // Project requirements
 
