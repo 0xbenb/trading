@@ -41,3 +41,6 @@ DATABASE=
 BINANCE_API_KEY=
 BINANCE_SECRET_KEY=<
 ```
+
+## To Do 
+> Implement logging 
