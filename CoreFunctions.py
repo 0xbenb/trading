@@ -177,7 +177,7 @@ def Import_Info(table_name, db_engine, db_conn):
 
     # if current entry is most recent hourly remove from data pull
     current_ts = pd.Timestamp.utcnow()
-    max_ts = pd.Timestamp(current_ts.strftime('%Y-%m-%d %H:00:00.%000000'))
+    max_ts = pd.Timestamp(current_ts.strftime(format='%Y-%m-%d %H:00:00.%000000'))
 
     import_info = table_info[table_info['end_t'] != str(max_ts)] # get rid of up to date fields
 
