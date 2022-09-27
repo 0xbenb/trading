@@ -22,7 +22,7 @@ def Unpack_OHLCV(dat):
         dat = pd.DataFrame(dat, columns=['time', 'open', 'high', 'low', 'close', 'volume'])
         dat['time'] = pd.to_datetime(dat['time'], unit='ms')
 
-    return (dat)
+    return dat
 
 
 def fetch_OHLCV(exchange_id, symbol_id, timeframe, date_min=None):
@@ -47,7 +47,6 @@ def fetch_OHLCV(exchange_id, symbol_id, timeframe, date_min=None):
         try:
             dat = exchange.fetch_ohlcv(symbol=symbol_id, since=start_t, timeframe=timeframe)
             dat = Unpack_OHLCV(dat)
-        # print(start_t, dat)
 
         except Exception:
             # print('sleep')
@@ -76,38 +75,56 @@ def fetch_OHLCV(exchange_id, symbol_id, timeframe, date_min=None):
 
 
 if __name__ == '__main__':
+
+    # Exchange specifics
     exchange_id = 'binance'
     table_name = 'binance_ohlcv'
     timeframe = '1h'
 
-    symbol_id = 'KSM/USDT'
+    ## Move this content to function for finding what new data to import
 
+    # Initialise clients
     exchange = Instantiate_Exchange(exchange_id)
-
     engine = Create_SQL_Engine()
     conn = Create_SQL_Connection(db_engine=engine)
 
-    q = "select * from universe_mapping where time=(select max(time) from universe_mapping)"
-    univ = pd.read_sql_query(q, con=engine)
+    # Check the database table exists if not build
+    Create_Database_Table(table_name='binance_ohlcv', db_engine=engine,
+                          db_conn=conn)  # can do this at start of script
 
-    table_info = DB_Table_Info(table_name=table_name, db_engine=engine)
+    import_info = Import_Info(table_name='binance_ohlcv', db_engine=engine, db_conn=conn)
 
-    symbol_ids = univ['binance_symbol'].drop_duplicates().dropna().tolist()
+    symbol_ids = import_info['symbol'].tolist()
 
-    for s in symbol_ids:
+    for symbol in symbol_ids:
+        print(symbol)
 
-        try:
-            date_min = int(table_info[table_info['symbol'] == s]['end_t'][0].timestamp() * 1000) + 1
-            ohlcv = fetch_OHLCV(exchange_id=exchange_id, symbol_id=symbol_id, timeframe=timeframe, date_min=date_min)
+        current_import = import_info[import_info['symbol'] == symbol]
 
-        except Exception as e:
-            print(str(e))
-            ohlcv = fetch_OHLCV(exchange_id=exchange_id, symbol_id=symbol_id, timeframe=timeframe)
+        # if no data yet
+        if pd.isnull(current_import['start_t'].iloc[0]):
+            ohlcv = fetch_OHLCV(exchange_id=exchange_id, symbol_id=symbol, timeframe=timeframe)
+            pop(data=ohlcv, table_name='binance_ohlcv', db_engine=engine)
 
-        if len(ohlcv) != 0:
-            Create_Database_Table(table_name='binance_ohlcv', db_engine=engine,
-                                  db_conn=conn)  # can do this at start of script
-            pop(data=ohlcv, table_name='binance_ohlcv', db_conn=conn)
+        else:
+
+            try:
+                date_min = int(current_import.iloc[0,2].timestamp() * 1000) + 1
+                ohlcv = fetch_OHLCV(exchange_id=exchange_id, symbol_id=symbol, timeframe=timeframe, date_min=date_min)
+
+                if (len(ohlcv) != 0) and \
+                        (str(ohlcv['time'].max()) != current_import.iloc[0]['end_t'].strftime("%Y-%m-%d %H:%M:%S")):
+                    # some symbols stop getting supported should have a better way of filtering this out of universe
+                    pop(data=ohlcv, table_name='binance_ohlcv', db_engine=engine)
+
+            except Exception as e:
+                print(str(e))
+
+                # e == 'list indices must be integers or slices, not str':
+                # this error is there is no new data e.g. USDC no longer supported by Binance
+                # should have better process from removing from universe
+
+
 
 
 
