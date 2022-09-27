@@ -14,7 +14,7 @@ This is a top 100 Digital Asset trading strategy. Written in Python, it is a sin
 │   └── PrepOHLCV.py                  // Preparing data from OHLCV endpoint variables
 ├── <b>DataCollection</b>             // Directory containing scripts for collecting data
 │   └── BinanceOHLCV.py               // Collecting OHLCV data from Binance
-├── <b>Deployment</b>                 // Director for Deploying strategy
+├── <b>Deployment</b>                 // Directory for Deploying strategy
 ├── <b>EDA</b>                        // Directory containing Exploratory Data Analysis
 │   └── ResearchFunctions.py          // Contains functions used across all research programs 
 │   └── Research.py                   // Research process
