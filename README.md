@@ -44,3 +44,4 @@ BINANCE_SECRET_KEY=<
 
 ## To Do 
 > Implement logging 
+> Fix universe creation to account for delisted pairs 
