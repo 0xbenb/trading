@@ -133,7 +133,7 @@ def Create_Database_Table(table_name: str, db_engine, db_conn):
             db_conn.commit()
 
 
-def pop(data: pd.DataFrame, table_name: str, db_conn):
+def pop(data: pd.DataFrame, table_name: str, db_engine):
     """
 
     :param data: data being inserted into database
@@ -142,6 +142,7 @@ def pop(data: pd.DataFrame, table_name: str, db_conn):
     :return: no return (pop)
     """
 
+    db_conn = Create_SQL_Connection(db_engine=db_engine)
     cur = db_conn.cursor()
 
     output = io.StringIO()
@@ -151,7 +152,7 @@ def pop(data: pd.DataFrame, table_name: str, db_conn):
     cur.copy_from(output, table_name, null="")  # null values become ''
     db_conn.commit()
 
-    db_conn.close() # might need to stop closing my connection if i want to keep it open
+    db_conn.close() # might need to stop closing my connection if i want to keep it open for pops
 
 
 def DB_Table_Info(table_name: str, db_engine):
@@ -162,3 +163,22 @@ def DB_Table_Info(table_name: str, db_engine):
     return db_table
 
 
+def Import_Info(table_name, db_engine, db_conn):
+    # Get info from the existing table to know new data to pull
+
+    q = f"select {table_name.split('_')[0]}_symbol as symbol from universe_mapping " \
+        f"where time=(select max(time) from universe_mapping)"
+    univ = pd.read_sql_query(q, con=db_engine).dropna()
+
+
+    table_info = DB_Table_Info(table_name=table_name, db_engine=db_engine)
+
+    table_info = univ.merge(table_info, how='left', on='symbol')
+
+    # if current entry is most recent hourly remove from data pull
+    current_ts = pd.Timestamp.utcnow()
+    max_ts = pd.Timestamp(current_ts.strftime('%Y-%m-%d %H:00:00.%000000'))
+
+    import_info = table_info[table_info['end_t'] != str(max_ts)] # get rid of up to date fields
+
+    return import_info
