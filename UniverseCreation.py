@@ -76,4 +76,4 @@ if __name__ == "__main__":
     engine = Create_SQL_Engine()
     conn = Create_SQL_Connection(engine)
     Create_Database_Table(table_name='universe', db_engine=engine, db_conn=conn)
-    pop(data=univ, table_name='universe', db_conn=conn)
+    pop(data=univ, table_name='universe', db_engine=engine)
