@@ -1,3 +1,4 @@
+import numpy as np
 from pycoingecko import CoinGeckoAPI
 import pandas as pd
 import direnv
@@ -91,8 +92,9 @@ if __name__ == "__main__":
     univ = Align_Universes()
     unsupported_symbols = Unsupported_Symbols(db_engine=engine)
 
-    univ = univ[~univ['binance_symbol'].isin(unsupported_symbols)]
+    univ.loc[(univ.binance_symbol.isin(unsupported_symbols)),
+             ['binance_id','binance_symbol','binance_base','binance_quote']] = np.nan
 
     Create_Database_Table(table_name='universe', db_engine=engine, db_conn=conn)
-
     pop(data=univ, table_name='universe', db_engine=engine)
+
