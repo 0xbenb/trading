@@ -82,9 +82,9 @@ def Create_Database_Table(table_name: str, db_engine, db_conn):
 
     if not exists['exists'].values[0]:
 
-        if table_name == 'universe_mapping':
+        if table_name == 'universe':
             q = """
-            create table universe_mapping(
+            create table universe(
             time timestamptz NOT NULL, 
             coingecko_id text NOT NULL, 
             coingecko_symbol text NOT NULL, 
@@ -166,8 +166,8 @@ def DB_Table_Info(table_name: str, db_engine):
 def Import_Info(table_name, db_engine, db_conn):
     # Get info from the existing table to know new data to pull
 
-    q = f"select {table_name.split('_')[0]}_symbol as symbol from universe_mapping " \
-        f"where time=(select max(time) from universe_mapping)"
+    q = f"select {table_name.split('_')[0]}_symbol as symbol from universe " \
+        f"where time=(select max(time) from universe)"
     univ = pd.read_sql_query(q, con=db_engine).dropna()
 
 
@@ -182,3 +182,42 @@ def Import_Info(table_name, db_engine, db_conn):
     import_info = table_info[table_info['end_t'] != str(max_ts)] # get rid of up to date fields
 
     return import_info
+
+
+def DB_Query_Statement(table_name, columns=None, symbol=None, time_start=None, time_end=None):
+    table = Table(table_name)
+
+    # SELECT COLUMNS ELSE *
+    if columns:
+        columns = '","'.join(columns)
+        q = Query.from_(table).select(columns)
+    else:
+        q = Query.from_(table_name).select('*')
+
+    if symbol:
+        q = q.where(table.uid.isin(symbol))
+    if time_start:
+        q = q.where(table.time >= time_start)
+    if time_end:
+        q = q.where(table.time <= time_end)
+
+    # ORDER ACCORDINGLY
+    if symbol:
+        q = q.orderby('symbol', 'time')  # , order=Order.desc
+    else:
+        q = q.orderby('time')  # , order=Order.desc
+
+    sql_statement = str(q)
+
+    return sql_statement
+
+
+def DB_Query(query: str, engine):
+    conn = Create_SQL_Connection(engine)
+
+    table_dat = pd.read_sql_query(query, con=conn)
+
+    conn.close()
+
+    return table_dat
+

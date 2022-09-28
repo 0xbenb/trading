@@ -75,5 +75,5 @@ if __name__ == "__main__":
     univ = Align_Universes()
     engine = Create_SQL_Engine()
     conn = Create_SQL_Connection(engine)
-    Create_Database_Table(table_name='universe_mapping', db_engine=engine, db_conn=conn)
-    pop(data=univ, table_name='universe_mapping', db_conn=conn)
+    Create_Database_Table(table_name='universe', db_engine=engine, db_conn=conn)
+    pop(data=univ, table_name='universe', db_conn=conn)

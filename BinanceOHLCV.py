@@ -1,13 +1,9 @@
-from pycoingecko import CoinGeckoAPI
 import pandas as pd
 import direnv
 import ccxt
 import os
 import time
-
 from CoreFunctions import *
-
-# need to line up the id's from coingecko and first data source
 direnv.load()
 
 pd.options.display.max_rows = 10
