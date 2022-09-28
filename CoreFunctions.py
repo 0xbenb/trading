@@ -184,7 +184,8 @@ def Import_Info(table_name, db_engine, db_conn):
     return import_info
 
 
-def DB_Query_Statement(table_name, columns=None, symbol=None, time_start=None, time_end=None):
+def DB_Query_Statement(table_name: str, columns: list = None, symbol: list = None, time_start: str = None,
+                       time_end: str = None, most_recent: bool = None):
     table = Table(table_name)
 
     # SELECT COLUMNS ELSE *
@@ -200,6 +201,9 @@ def DB_Query_Statement(table_name, columns=None, symbol=None, time_start=None, t
         q = q.where(table.time >= time_start)
     if time_end:
         q = q.where(table.time <= time_end)
+    if most_recent:
+        q_max_time = Query.from_(table_name).select(fn.Max(table.time))
+        q = q.where(table.time == q_max_time)
 
     # ORDER ACCORDINGLY
     if symbol:
@@ -212,12 +216,9 @@ def DB_Query_Statement(table_name, columns=None, symbol=None, time_start=None, t
     return sql_statement
 
 
-def DB_Query(query: str, engine):
-    conn = Create_SQL_Connection(engine)
+def DB_Query(query: str, db_engine):
 
-    table_dat = pd.read_sql_query(query, con=conn)
-
-    conn.close()
+    table_dat = pd.read_sql_query(query, con=db_engine)
 
     return table_dat
 

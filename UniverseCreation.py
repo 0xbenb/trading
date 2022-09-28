@@ -7,6 +7,7 @@ import io
 import sqlalchemy
 from sqlalchemy import exc
 from sqlalchemy import create_engine
+from datetime import datetime, timedelta
 from CoreFunctions import *
 
 direnv.load()
@@ -34,6 +35,19 @@ def Exchange_Supported_Symbols(exchange_id: str):
 
     return supported_symbols
 
+
+def Unsupported_Symbols(db_engine):
+
+    # pick any binance table to filter down symbols no longer supported
+    table_info = DB_Table_Info(table_name='binance_ohlcv', db_engine=db_engine)
+    ts_7d_ago = str(datetime.utcnow() - timedelta(days=7))
+
+    symbols = table_info[table_info['end_t'] < ts_7d_ago]
+    symbols = symbols['symbol'].tolist()
+
+    return symbols
+
+
 # for the time being only using binance so don't need this code to scale to multiple
 def Align_Universes():
     cg = CoinGeckoAPI()
@@ -55,6 +69,7 @@ def Align_Universes():
          supported_symbols[supported_symbols['base'].isin(base_ccy)]]).reset_index(drop=True)
 
     supported_symbols = supported_symbols.add_prefix('binance_')
+
     aligned_univ = pd.merge(cg_ids, supported_symbols, how='left', left_on=cg_ids['coingecko_symbol'],
                                  right_on=supported_symbols['binance_base'].str.lower())
     aligned_univ.drop('key_0', axis=1, inplace=True)
@@ -65,15 +80,19 @@ def Align_Universes():
     col = aligned_univ.pop("time")
     aligned_univ.insert(0, col.name, col)
 
-
-
     return aligned_univ
 
 
 if __name__ == "__main__":
 
-    univ = Align_Universes()
     engine = Create_SQL_Engine()
     conn = Create_SQL_Connection(engine)
+
+    univ = Align_Universes()
+    unsupported_symbols = Unsupported_Symbols(db_engine=engine)
+
+    univ = univ[~univ['binance_symbol'].isin(unsupported_symbols)]
+
     Create_Database_Table(table_name='universe', db_engine=engine, db_conn=conn)
+
     pop(data=univ, table_name='universe', db_engine=engine)
