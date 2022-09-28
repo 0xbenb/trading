@@ -88,6 +88,7 @@ if __name__ == '__main__':
     Create_Database_Table(table_name='binance_ohlcv', db_engine=engine,
                           db_conn=conn)  # can do this at start of script
 
+    # this is good for existing entries, but what about when new coins enter into the top 100?
     import_info = Import_Info(table_name='binance_ohlcv', db_engine=engine, db_conn=conn)
 
     symbol_ids = import_info['symbol'].tolist()

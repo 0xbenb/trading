@@ -62,6 +62,8 @@ def Align_Universes():
 
     supported_symbols = supported_symbols[supported_symbols['quote'].isin(quote_ccy)]
 
+    # here there is the case that coins temporarily leave the top 100 and won't be pulled into fresh universe
+
     base_ccy = cg_ids['coingecko_symbol'].str.upper().tolist()
     base_ccy = [i for i in base_ccy if i not in quote_ccy]
 

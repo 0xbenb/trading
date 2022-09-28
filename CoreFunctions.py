@@ -4,7 +4,7 @@ import direnv
 import ccxt
 import os
 import yaml
-from datetime import datetime
+from datetime import datetime, timedelta
 import sqlalchemy
 from sqlalchemy import exc
 from sqlalchemy import create_engine
@@ -166,10 +166,13 @@ def DB_Table_Info(table_name: str, db_engine):
 def Import_Info(table_name, db_engine, db_conn):
     # Get info from the existing table to know new data to pull
 
-    q = f"select {table_name.split('_')[0]}_symbol as symbol from universe " \
-        f"where time=(select max(time) from universe)"
-    univ = pd.read_sql_query(q, con=db_engine).dropna()
+    ts_7d_ago = str(datetime.utcnow() - timedelta(days=7))  # reduce the noise of coins entering / leaving universe
 
+    q = DB_Query_Statement(table_name='universe', columns=[f"{table_name.split('_')[0]}_symbol"],
+                           time_start=ts_7d_ago)
+    univ = DB_Query(query=q, db_engine=db_engine)
+    univ.columns = univ.columns.str.removeprefix("binance_")
+    univ = univ.dropna().drop_duplicates()
 
     table_info = DB_Table_Info(table_name=table_name, db_engine=db_engine)
 
