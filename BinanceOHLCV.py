@@ -101,13 +101,17 @@ if __name__ == '__main__':
         # if no data yet
         if pd.isnull(current_import['start_t'].iloc[0]):
             ohlcv = fetch_OHLCV(exchange_id=exchange_id, symbol_id=symbol, timeframe=timeframe)
+            ohlcv = ohlcv[ohlcv['time'] != ohlcv['time'].max()] # most recent bar still populating
             pop(data=ohlcv, table_name='binance_ohlcv', db_engine=engine)
-
+            # remember time is open time
         else:
 
             try:
                 date_min = int(current_import.iloc[0,2].timestamp() * 1000) + 1
                 ohlcv = fetch_OHLCV(exchange_id=exchange_id, symbol_id=symbol, timeframe=timeframe, date_min=date_min)
+
+                utc_current_H = pd.Timestamp.utcnow().strftime("%Y-%m-%d %H:00:00")
+                ohlcv = ohlcv[ohlcv['time'] != utc_current_H] # filter out current bar populating
 
                 if (len(ohlcv) != 0) and \
                         (str(ohlcv['time'].max()) != current_import.iloc[0]['end_t'].strftime("%Y-%m-%d %H:%M:%S")):
