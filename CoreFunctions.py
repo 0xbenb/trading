@@ -168,8 +168,7 @@ def Import_Info(table_name, db_engine, db_conn):
 
     ts_7d_ago = str(datetime.utcnow() - timedelta(days=7))  # reduce the noise of coins entering / leaving universe
 
-    q = DB_Query_Statement(table_name='universe', columns=[f"{table_name.split('_')[0]}_symbol"],
-                           time_start=ts_7d_ago)
+    q = DB_Query_Statement(table_name='universe', columns=[f"{table_name.split('_')[0]}_symbol"],time_start=ts_7d_ago)
     univ = DB_Query(query=q, db_engine=db_engine)
     univ.columns = univ.columns.str.removeprefix("binance_")
     univ = univ.dropna().drop_duplicates()
