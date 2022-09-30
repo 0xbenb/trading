@@ -19,7 +19,7 @@ This is a top 100 Digital Asset trading strategy. Written in Python, it is a sin
 ├── <b>EDA</b>                        // Directory containing Exploratory Data Analysis
 │   └── EDAFunctions.py               // Contains functions used across EDA
 │   └── EDA.py                        // EDA process
-├── <b>Model</b>                      // Directory for building models
+├── <b>Model</b>                      // Directory for Model building
 ├── requirements.txt                  // Project requirements
 
 </pre>
