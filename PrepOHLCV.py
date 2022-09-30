@@ -32,13 +32,6 @@ ohlcv_smy = Calculate_USD_Price_Volume(ohlcv_dat=ohlcv, univ_dat=univ)
 
 ohlcv_smy = Create_Perfect_Index(imperfect_dat=ohlcv_smy)
 
-ohlcv_smy['shift_price_usd'] = ohlcv_smy.groupby('coin')['price_usd'].shift(1)
-# ohlcv_smy['shift'] = ohlcv_smy.groupby('coin')['time'].shift(-1)
-# ohlcv_smy['diff'] = ohlcv_smy['shift'] - ohlcv_smy['time']
-
-
-# create perfect index then join
-
 
 # RANGE OF FORWARD RETURN TIME PERIODS
 def FWD_Return(time_period):

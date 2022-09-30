@@ -32,7 +32,8 @@ def Universe_Definition(top100_ndays_ago: int):
 
 
 def Calculate_USD_Price_Volume(ohlcv_dat, univ_dat):
-    ohlcv_dat = ohlcv_dat.merge(univ[['symbol', 'base', 'quote']], on='symbol', how='left')
+
+    ohlcv_dat = ohlcv_dat.merge(univ_dat[['symbol', 'base', 'quote']], on='symbol', how='left')
 
     quote_symbols = ['BTC/USDT', 'ETH/USDT']
     quote_prices = ohlcv_dat.copy(deep=True)
