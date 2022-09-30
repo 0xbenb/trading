@@ -14,53 +14,89 @@ pd.options.display.width = 10000
 engine = Create_SQL_Engine()
 conn = Create_SQL_Connection(db_engine=engine)
 
-ts_7d_ago = str(datetime.utcnow() - timedelta(days=7)) # reduce the noise of coins entering / leaving universe
+# 7 DAY universe stationary definition of universe - will improve later
+def Universe_Definition(top100_ndays_ago: int):
+    """
 
-q = DB_Query_Statement(table_name='universe', columns = ['binance_symbol','binance_base','binance_quote'],
-                       time_start=ts_7d_ago)
-univ = DB_Query(query=q, db_engine=engine)
-univ.columns = univ.columns.str.removeprefix("binance_")
-univ = univ.dropna().drop_duplicates()
+    :param top100_ndays_ago: how many days ago in the top 100 coingecko
+    :return:
+    """
+    ts_nd_ago = str(datetime.utcnow() - timedelta(days=top100_ndays_ago)) # reduce the noise of coins entering / leaving universe
+    sql_q = DB_Query_Statement(table_name='universe', columns=['binance_symbol','binance_base','binance_quote'],
+                               time_start=ts_nd_ago)
+    univ_nd = DB_Query(query=sql_q, db_engine=engine)
+    univ_nd.columns = univ_nd.columns.str.removeprefix("binance_")
+    univ_nd = univ_nd.dropna().drop_duplicates()
 
-# one problem with univ is that you start to rule out coins that get delisted i.e. survivorship bias creeping in
-# i need to change univ to have a column saying "binance_delisted"
-# that way when i drag in data i can get full picture not more perfect universe
+    return univ_nd
 
-# have pricing in USDT BTC ETH
-# will standardise to $ pricing (USDT as proxy)
+univ = Universe_Definition(top100_ndays_ago=7)
 
-q = DB_Query_Statement(table_name='binance_ohlcv', columns=['time','symbol','c'])
-# ohlcv = DB_Query(query=q, db_engine=engine).dropna()
-# ohlcv.to_csv('dat/ohlcv.csv', index=False)
-ohlcv = pd.read_csv('dat/ohlcv.csv')
-ohlcv.rename({'c': 'price'}, axis=1, inplace=True)
+# PULL PRICE AND VOLUME DATA
 
-# sample_symbols = list(np.random.choice(ohlcv['symbol'].unique(), 10))
-# sample_symbols = sample_symbols + ['BTC/USDT','ETH/USDT','BNB/ETH']
-# ohlcv = ohlcv[ohlcv['symbol'].isin(sample_symbols)]
+q = DB_Query_Statement(table_name='binance_ohlcv', columns=['time','symbol','o','volume'])
+ohlcv = DB_Query(query=q, db_engine=engine).dropna()
+ohlcv['time'] = pd.to_datetime(ohlcv['time'], format='%Y-%m-%d %H:%M:%S')
+ohlcv.rename({'o': 'price'}, axis=1, inplace=True)
 
-ohlcv = ohlcv.merge(univ[['symbol','base','quote']], on='symbol', how='left')
+# PREPARE DATA TO CALCULATE RETURNS AND VOLUME IN USD
 
-# for each symbol bring on $ price for each quote to be able to calculate everything in dollars
-quote_symbols = ['BTC/USDT','ETH/USDT']
-quote_prices = ohlcv[ohlcv['symbol'].isin(quote_symbols)]
-quote_prices.drop(['quote','symbol'], axis=1, inplace=True)
-quote_prices.rename({'price': 'quote_price_usd', 'base': 'quote'}, axis=1, inplace=True)
+def Calculate_USD_Price_Volume(ohlcv_dat, univ_dat):
 
-ohlcv = ohlcv.merge(quote_prices, how='left', on=['time','quote'])
 
-# where the quote is already usdt set the quote price rate = 1
-ohlcv['quote_price_usd'] = np.where(ohlcv['quote'] == 'USDT', 1, ohlcv['quote_price_usd'])
+    ohlcv_dat = ohlcv_dat.merge(univ[['symbol','base','quote']], on='symbol', how='left')
 
-ohlcv.dropna(inplace=True)
+    quote_symbols = ['BTC/USDT','ETH/USDT']
+    quote_prices = ohlcv_dat.copy(deep=True)
+    quote_prices = quote_prices[quote_prices['symbol'].isin(quote_symbols)]
+    quote_prices.drop(['quote','symbol','volume'], axis=1, inplace=True)
+    quote_prices.rename({'price': 'quote_price_usd', 'base': 'quote'}, axis=1, inplace=True)
 
-ohlcv['price_usd'] = ohlcv['price'] * ohlcv['quote_price_usd']
+    ohlcv_dat = ohlcv_dat.merge(quote_prices, how='left', on=['time','quote'])
+    ohlcv_dat['quote_price_usd'] = np.where(ohlcv_dat['quote'] == 'USDT', 1, ohlcv_dat['quote_price_usd'])  # usdt quote price rate = 1
+    ohlcv_dat.dropna(inplace=True) # btcusdt didn't exist on platform before august 2017
+    ohlcv_dat['price_usd'] = ohlcv_dat['price'] * ohlcv_dat['quote_price_usd']
+    ohlcv_dat['volume_1h_usd'] = ohlcv_dat['volume'] * ohlcv_dat['price_usd']
 
-price_usd = ohlcv.groupby(['time','base'])['price_usd'].mean().reset_index()
+    # here i am assuming the # venues doesn't matter i'm just adding the volume for each base
+    ohlcv_smy = ohlcv_dat.groupby(['time','base']).agg(
+        {'price_usd': 'mean', 'volume_1h_usd': 'sum'}
+    ).reset_index().rename({'base': 'coin'}, axis=1)
+    
+    return ohlcv_smy
 
-# data checks
-ohlcv[ohlcv['time'] == '2022-09-28 14:00:00+00:00'].sample(10)
+ohlcv_smy[(ohlcv_smy['time'] >= '2019-11-13 01:00:00+00:00') & (ohlcv_smy['coin'] == 'ADA')]
 
+all_coins = ohlcv_smy['coin'].unique()
+all_dates = pd.date_range(start=ohlcv_smy['time'].min(), end=ohlcv_smy['time'].max(), freq='h')
+
+complete_index = list(itertools.product(all_dates, all_coins))
+complete_index = pd.DataFrame(complete_index, columns=['time', 'coin'])
+
+min_dt = ohlcv_smy.groupby('coin')['time'].min().reset_index().rename({'time': 'min_dt'}, axis=1)
+complete_index = complete_index.merge(min_dt, how='left', on='coin')
+complete_index = complete_index[complete_index['time'] >= complete_index['min_dt']]
+complete_index.drop('min_dt', axis=1, inplace=True)
+
+ohlcv_smy = complete_index.merge(ohlcv_smy, how='left', on=['time','coin'])
+
+ohlcv_smy['shift_price_usd'] = ohlcv_smy.groupby('coin')['price_usd'].shift(1)
+# ohlcv_smy['shift'] = ohlcv_smy.groupby('coin')['time'].shift(-1)
+# ohlcv_smy['diff'] = ohlcv_smy['shift'] - ohlcv_smy['time']
+
+
+# create perfect index then join
+
+
+# RANGE OF FORWARD RETURN TIME PERIODS
+def FWD_Return(time_period):
+
+
+# RANGE OF NEUTRAL FORWARD RETURN TIME PERIODS
+
+# RANGE OF TRAILING RETURN TIME PERIODS
+
+# RANGE OF
 
 
 
