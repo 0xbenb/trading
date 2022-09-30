@@ -11,14 +11,14 @@ This is a top 100 Digital Asset trading strategy. Written in Python, it is a sin
 ├── UniverseCreation.py               // Aligns trading venues with coingecko top 100
 ├── CoreFunctions.py                  // Contains functions used across all programs 
 ├── <b>DataPrep</b>                   // Directory containing scripts for data cleaning & preparation
-│   └── PrepOHLCV.py                  // Preparing data from OHLCV endpoint variables
+│   └── PrepOHLCV.py                  // Preparing data from OHLCV endpoint 
 │   └── PrepFunctions.py              // Contains functions used across Data Prep
 ├── <b>DataCollection</b>             // Directory containing scripts for collecting data
 │   └── BinanceOHLCV.py               // Collecting OHLCV data from Binance
 ├── <b>Deployment</b>                 // Directory for Deploying strategy
 ├── <b>EDA</b>                        // Directory containing Exploratory Data Analysis
 │   └── EDAFunctions.py               // Contains functions used across EDA
-│   └── EDA.py                        // Research process
+│   └── EDA.py                        // EDA process
 ├── <b>Model</b>                      // Directory for building models
 ├── requirements.txt                  // Project requirements
 
