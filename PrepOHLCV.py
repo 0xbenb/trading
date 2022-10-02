@@ -21,7 +21,7 @@ univ = Universe_Definition(top100_ndays_ago=7)
 
 # PULL PRICE AND VOLUME DATA
 
-q = DB_Query_Statement(table_name='binance_ohlcv', columns=['time','symbol','o','volume'])
+q = DB_Query_Statement(table_name='binance_ohlcv', columns=['time', 'symbol', 'o', 'volume'])
 ohlcv = DB_Query(query=q, db_engine=engine).dropna()
 ohlcv['time'] = pd.to_datetime(ohlcv['time'], format='%Y-%m-%d %H:%M:%S')
 ohlcv.rename({'o': 'price'}, axis=1, inplace=True)
@@ -33,36 +33,42 @@ ohlcv_smy = Calculate_USD_Price_Volume(ohlcv_dat=ohlcv, univ_dat=univ)
 ohlcv_smy = Create_Perfect_Index(imperfect_dat=ohlcv_smy)
 
 
-# RANGE OF FORWARD RETURN TIME PERIODS
-def FWD_Return(time_period):
-    
+# RANGE OF FORWARD/TRAILING RETURN TIME PERIODS
+# INCLUDING NEUTRAL RETURNS
+ret_periods = [1, -1, 3, -3, 6, -6, 12, -12, 24, -24, 72, -72, 168, -168]
+all_returns = [Calculate_Returns(price_data=ohlcv_smy, time_period=i, price_name='price_usd') for i in ret_periods]
 
-# RANGE OF NEUTRAL FORWARD RETURN TIME PERIODS
+all_returns = pd.concat(all_returns, axis=1).reset_index()
 
-# RANGE OF TRAILING RETURN TIME PERIODS
+all_returns = pd.melt(all_returns, id_vars=['time', 'coin'], var_name='feature')
 
-# RANGE OF
+ohlcv_smy.rename({'price': 'price_usd'}, axis=1, inplace=True)
+ohlcv_smy = pd.melt(ohlcv_smy, id_vars=['time', 'coin'], var_name='feature')
 
+import_dat = pd.concat([all_returns, ohlcv_smy], axis=0)
 
+Create_Database_Table(table_name='rets', db_engine=engine, db_conn=conn)
 
+data_splits = Data_Splitter(import_dat, max_rows=10**6)
 
+for dat in data_splits:
+    pop(data=dat, table_name='rets', db_engine=engine)
 
+t0 = time.time()
+q = "select distinct time, symbol from rets"
+dat = pd.read_sql_query(q, con=engine)
+print(time.time() - t0)
+# 39 second query - inefficient way, will do for now can store this output more efficiently later
+# would be good to store this info of t_start t_end into database (same for ohlcv)
+# stored proc for postgres?
 
+## import volumes to features
 
+ohlcv_smy = ohlcv_smy[ohlcv_smy['feature'] != 'price_usd']
 
+Create_Database_Table(table_name='features', db_engine=engine, db_conn=conn)
 
-
-
-
-
-
-
-
-
-
-
-
-
+pop(data=ohlcv_smy, table_name='features', db_engine=engine)
 
 
 

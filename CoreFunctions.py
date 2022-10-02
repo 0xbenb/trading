@@ -132,6 +132,56 @@ def Create_Database_Table(table_name: str, db_engine, db_conn):
             cur.execute(q)
             db_conn.commit()
 
+        if table_name == 'rets':
+            q = """
+            create table rets(
+            time timestamptz NOT NULL, 
+            symbol text NOT NULL, 
+            feature text NOT NULL, 
+            value numeric 
+            )
+            """
+            cur.execute(q)
+            # cur.execute('rollback')
+            db_conn.commit()
+
+            q = f"""SELECT create_hypertable('{table_name}','time');"""
+            cur.execute(q)
+            db_conn.commit()
+
+            q = f"""CREATE UNIQUE INDEX {table_name}_index on {table_name}(time,symbol,feature);"""
+            cur.execute(q)
+            db_conn.commit()
+
+
+        if table_name == 'features':
+            q = """
+            create table features(
+            time timestamptz NOT NULL, 
+            symbol text NOT NULL, 
+            feature text NOT NULL, 
+            value numeric 
+            )
+            """
+            cur.execute(q)
+            # cur.execute('rollback')
+            db_conn.commit()
+
+            q = f"""SELECT create_hypertable('{table_name}','time');"""
+            cur.execute(q)
+            db_conn.commit()
+
+            q = f"""CREATE UNIQUE INDEX {table_name}_index on {table_name}(time,symbol,feature);"""
+            cur.execute(q)
+            db_conn.commit()
+
+
+def Data_Splitter(data: pd.DataFrame, max_rows: int):
+
+    n_chunks = round(data.shape[0] / max_rows)
+    data_splits = np.array_split(data, n_chunks)
+
+    return data_splits
 
 def pop(data: pd.DataFrame, table_name: str, db_engine):
     """

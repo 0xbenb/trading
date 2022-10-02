@@ -76,3 +76,51 @@ def Create_Perfect_Index(imperfect_dat: pd.DataFrame):
     complete_dat = complete_index.merge(imperfect_dat, how='left', on=['time','coin'])
 
     return complete_dat
+
+
+def Calculate_Returns(price_data: pd.DataFrame, time_period: int, price_name: str = None):
+    """
+
+    :param price_data: data block of [time,coin,price]
+    :param time_period: time period in hours 1h, 3h, 6h, 12h, 1d, 3d, 7d (+ve = FWD -ve = trailing)
+    :param price_name: name of price columns if 'price' not name
+    :return:
+    """
+    if price_name:
+        price_data.rename({price_name: 'price'}, axis=1, inplace=True)
+
+    # static options for now
+    time_period_names = {1: '1h', 3: '3h', 6: '6h', 12: '12h', 24: '1d', 72: '3d', 168: '7d'}
+
+    price_data = price_data[['time', 'coin', 'price']]
+
+    price_data['shift_price'] = price_data.groupby('coin')['price'].shift(-time_period)  #
+
+    ret_name = f'ret_{time_period_names[abs(time_period)]}'
+
+    if time_period > 0:
+        ret_name = f'fwd_{ret_name}'
+        price_data[ret_name] = price_data['shift_price'] / price_data['price'] - 1
+
+    if time_period < 0:
+        price_data[ret_name] = price_data['price'] / price_data['shift_price'] - 1
+
+    price_data.drop(['price','shift_price'], axis=1, inplace=True)
+
+    mkt_ret_name = f'mkt_ret_{time_period}h'
+
+    price_data[mkt_ret_name] = price_data.groupby('time')[ret_name].transform('mean')
+
+    price_data[f'{ret_name}_neutral'] = price_data[ret_name] - price_data[mkt_ret_name]
+
+    price_data.drop(mkt_ret_name, axis=1, inplace=True)
+
+    price_data = price_data.set_index(['time', 'coin'])
+
+    return price_data
+
+
+
+
+
+
