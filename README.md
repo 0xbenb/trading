@@ -47,7 +47,5 @@ BINANCE_SECRET_KEY=<
 <br />
 
 ## Database Diagram (To Date)
-<img src="https://user-images.githubusercontent.com/32384270/193476098-470a0efc-42e4-478b-b9dd-d3fb78b9a965.png" width=50% height=50%>
-
-
+<img src="https://user-images.githubusercontent.com/32384270/193476587-1b68c28b-a574-4504-aceb-0195d73ffe0d.png" width=50% height=50%>
 
