@@ -17,7 +17,7 @@ conn = Create_SQL_Connection(db_engine=engine)
 
 # 7 DAY universe stationary definition of universe - will improve later
 
-univ = Universe_Definition(top100_ndays_ago=7)
+univ = Universe_Definition(top100_ndays_ago=7, db_engine=engine)
 
 # PULL PRICE AND VOLUME DATA
 
@@ -32,7 +32,6 @@ ohlcv_smy = Calculate_USD_Price_Volume(ohlcv_dat=ohlcv, univ_dat=univ)
 
 ohlcv_smy = Create_Perfect_Index(imperfect_dat=ohlcv_smy)
 
-
 # RANGE OF FORWARD/TRAILING RETURN TIME PERIODS
 # INCLUDING NEUTRAL RETURNS
 ret_periods = [1, -1, 3, -3, 6, -6, 12, -12, 24, -24, 72, -72, 168, -168]
@@ -45,7 +44,8 @@ all_returns = pd.melt(all_returns, id_vars=['time', 'coin'], var_name='feature')
 ohlcv_smy.rename({'price': 'price_usd'}, axis=1, inplace=True)
 ohlcv_smy = pd.melt(ohlcv_smy, id_vars=['time', 'coin'], var_name='feature')
 
-import_dat = pd.concat([all_returns, ohlcv_smy], axis=0)
+# messy tidy up later
+import_dat = pd.concat([all_returns, ohlcv_smy[ohlcv_smy['feature'] == 'price_usd']], axis=0)
 
 Create_Database_Table(table_name='rets', db_engine=engine, db_conn=conn)
 
@@ -64,7 +64,7 @@ print(time.time() - t0)
 
 ## import volumes to features
 
-ohlcv_smy = ohlcv_smy[ohlcv_smy['feature'] != 'price_usd']
+ohlcv_smy = ohlcv_smy[ohlcv_smy['feature'] == 'volume_1h_usd']
 
 Create_Database_Table(table_name='features', db_engine=engine, db_conn=conn)
 

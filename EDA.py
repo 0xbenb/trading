@@ -28,6 +28,16 @@ volume = DB_Query(q, db_engine=engine)
 q = DB_Query_Statement(table_name='rets', filter_col='feature', filter_col_vals=['ret_1h_neutral'])
 rets = DB_Query(q, db_engine=engine)
 
+input_dat = pd.concat([volume, rets], axis=0)
+input_dat = input_dat.pivot(index=['time', 'coin'], columns='feature', values='value').reset_index()
+
+# ultimately will test a range
+q = DB_Query_Statement(table_name='rets', filter_col='feature', filter_col_vals=['fwd_ret_6h_neutral'])
+fwd_rets = DB_Query(q, db_engine=engine)
+
+# factor in 1h constraint for putting on positions
+
+
 # using trailing 1h returns + volume to build a signal to capture changes in price dP and volume dV
 
 # MARKET PATTERN / OBSERVATION

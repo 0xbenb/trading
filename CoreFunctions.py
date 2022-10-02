@@ -136,7 +136,7 @@ def Create_Database_Table(table_name: str, db_engine, db_conn):
             q = """
             create table rets(
             time timestamptz NOT NULL, 
-            symbol text NOT NULL, 
+            coin text NOT NULL, 
             feature text NOT NULL, 
             value numeric 
             )
@@ -149,7 +149,7 @@ def Create_Database_Table(table_name: str, db_engine, db_conn):
             cur.execute(q)
             db_conn.commit()
 
-            q = f"""CREATE UNIQUE INDEX {table_name}_index on {table_name}(time,symbol,feature);"""
+            q = f"""CREATE UNIQUE INDEX {table_name}_index on {table_name}(time,coin,feature);"""
             cur.execute(q)
             db_conn.commit()
 
@@ -158,7 +158,7 @@ def Create_Database_Table(table_name: str, db_engine, db_conn):
             q = """
             create table features(
             time timestamptz NOT NULL, 
-            symbol text NOT NULL, 
+            coin text NOT NULL, 
             feature text NOT NULL, 
             value numeric 
             )
@@ -171,7 +171,7 @@ def Create_Database_Table(table_name: str, db_engine, db_conn):
             cur.execute(q)
             db_conn.commit()
 
-            q = f"""CREATE UNIQUE INDEX {table_name}_index on {table_name}(time,symbol,feature);"""
+            q = f"""CREATE UNIQUE INDEX {table_name}_index on {table_name}(time,coin,feature);"""
             cur.execute(q)
             db_conn.commit()
 
@@ -206,7 +206,7 @@ def pop(data: pd.DataFrame, table_name: str, db_engine):
 
 
 def DB_Table_Info(table_name: str, db_engine):
-
+    # make more generic for coin or symbol
     q = f"select min(time) start_t, max(time) end_t, symbol from {table_name} group by symbol"
     db_table = pd.read_sql_query(q, con=db_engine)
 
@@ -215,7 +215,7 @@ def DB_Table_Info(table_name: str, db_engine):
 
 def Import_Info(table_name, db_engine, db_conn):
     # Get info from the existing table to know new data to pull
-
+    # make more generic for coin or symbol
     ts_7d_ago = str(datetime.utcnow() - timedelta(days=7))  # reduce the noise of coins entering / leaving universe
 
     q = DB_Query_Statement(table_name='universe', columns=[f"{table_name.split('_')[0]}_symbol"],time_start=ts_7d_ago)
@@ -234,40 +234,6 @@ def Import_Info(table_name, db_engine, db_conn):
     import_info = table_info[table_info['end_t'] != str(max_ts)] # get rid of up to date fields
 
     return import_info
-
-
-def DB_Query_Statement(table_name: str, columns: list = None, symbol: list = None, time_start: str = None,
-                       time_end: str = None, most_recent: bool = None):
-    table = Table(table_name)
-
-    # SELECT COLUMNS ELSE *
-    if columns:
-        columns = '","'.join(columns)
-        q = Query.from_(table).select(columns)
-    else:
-        q = Query.from_(table_name).select('*')
-
-    if symbol:
-        q = q.where(table.uid.isin(symbol))
-    if time_start:
-        q = q.where(table.time >= time_start)
-    if time_end:
-        q = q.where(table.time <= time_end)
-    if most_recent:
-        q_max_time = Query.from_(table_name).select(fn.Max(table.time))
-        q = q.where(table.time == q_max_time)
-
-    # ORDER ACCORDINGLY
-    if symbol:
-        q = q.orderby('symbol', 'time')  # , order=Order.desc
-    else:
-        q = q.orderby('time')  # , order=Order.desc
-
-    sql_statement = str(q)
-
-    return sql_statement
-
-
 
 
 def DB_Query_Statement(table_name: str, columns: list = None, symbol: list = None, time_start: str = None,
@@ -293,7 +259,7 @@ def DB_Query_Statement(table_name: str, columns: list = None, symbol: list = Non
         q = q.where(table.time == q_max_time)
 
     # ORDER ACCORDINGLY
-    if symbol:
+    if symbol:  # make more generic if coin or symbol
         q = q.orderby('symbol', 'time')  # , order=Order.desc
     else:
         q = q.orderby('time')  # , order=Order.desc
