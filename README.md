@@ -44,6 +44,8 @@ BINANCE_SECRET_KEY=<
 > Implement logging <br />
 > Fix universe creation to account for delisted pairs <br />
 
+<br />
+
 ## Database Diagram (To Date)
 <img src="https://user-images.githubusercontent.com/32384270/193476098-470a0efc-42e4-478b-b9dd-d3fb78b9a965.png" width=50% height=50%>
 
