@@ -86,13 +86,13 @@ def Create_Database_Table(table_name: str, db_engine, db_conn):
             q = """
             create table universe(
             time timestamptz NOT NULL, 
-            coingecko_id text NOT NULL, 
-            coingecko_symbol text NOT NULL, 
-            coingecko_name text NOT NULL,
-            binance_id text, 
-            binance_symbol text, 
-            binance_base text, 
-            binance_quote text
+            coingecko_id VARCHAR(50) NOT NULL, 
+            coingecko_symbol VARCHAR(50) NOT NULL, 
+            coingecko_name VARCHAR(50) NOT NULL,
+            binance_id VARCHAR(50), 
+            binance_symbol VARCHAR(50), 
+            binance_base VARCHAR(50), 
+            binance_quote VARCHAR(50)
             )
             """
             cur.execute(q)
@@ -111,8 +111,8 @@ def Create_Database_Table(table_name: str, db_engine, db_conn):
             q = """
             create table binance_ohlcv(
             time timestamptz NOT NULL, 
-            symbol text NOT NULL, 
-            timeframe text NOT NULL, 
+            symbol VARCHAR(50) NOT NULL, 
+            timeframe VARCHAR(50) NOT NULL, 
             o numeric, 
             h numeric, 
             l numeric, 
@@ -136,8 +136,8 @@ def Create_Database_Table(table_name: str, db_engine, db_conn):
             q = """
             create table rets(
             time timestamptz NOT NULL, 
-            coin text NOT NULL, 
-            feature text NOT NULL, 
+            coin VARCHAR(50) NOT NULL, 
+            feature VARCHAR(50) NOT NULL, 
             value numeric 
             )
             """
@@ -158,8 +158,8 @@ def Create_Database_Table(table_name: str, db_engine, db_conn):
             q = """
             create table features(
             time timestamptz NOT NULL, 
-            coin text NOT NULL, 
-            feature text NOT NULL, 
+            coin VARCHAR(50) NOT NULL, 
+            feature VARCHAR(50) NOT NULL, 
             value numeric 
             )
             """
@@ -265,7 +265,6 @@ def DB_Query_Statement(table_name: str, columns: list = None, symbol: list = Non
         q = q.orderby('time')  # , order=Order.desc
 
     if filter_col:
-        q = Query.from_(table_name).select('*')
         q = q.where(table.field(name='feature').isin(filter_col_vals))
 
     sql_statement = str(q)

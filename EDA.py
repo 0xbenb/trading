@@ -32,9 +32,10 @@ input_dat = pd.concat([volume, rets], axis=0)
 input_dat = input_dat.pivot(index=['time', 'coin'], columns='feature', values='value').reset_index()
 
 # ultimately will test a range
-q = DB_Query_Statement(table_name='rets', filter_col='feature', filter_col_vals=['fwd_ret_6h_neutral'])
+q = DB_Query_Statement(table_name='rets', columns=['time', 'coin', 'value'], filter_col='feature',
+                       filter_col_vals=['fwd_ret_6h_neutral'])
 fwd_rets = DB_Query(q, db_engine=engine)
-
+fwd_rets.rename({'value': 'fwd_ret'}, axis=1, inplace=True)
 # factor in 1h constraint for putting on positions
 
 
