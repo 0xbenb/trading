@@ -14,23 +14,6 @@ pd.options.display.width = 10000
 engine = Create_SQL_Engine()
 conn = Create_SQL_Connection(db_engine=engine)
 
-
-def Universe_Definition(top100_ndays_ago: int):
-    """
-
-    :param top100_ndays_ago: how many days ago in the top 100 coingecko
-    :return:
-    """
-    ts_nd_ago = str(datetime.utcnow() - timedelta(days=top100_ndays_ago)) # reduce the noise of coins entering / leaving universe
-    sql_q = DB_Query_Statement(table_name='universe', columns=['binance_symbol','binance_base','binance_quote'],
-                               time_start=ts_nd_ago)
-    univ_nd = DB_Query(query=sql_q, db_engine=engine)
-    univ_nd.columns = univ_nd.columns.str.removeprefix("binance_")
-    univ_nd = univ_nd.dropna().drop_duplicates()
-
-    return univ_nd
-
-
 def Calculate_USD_Price_Volume(ohlcv_dat, univ_dat):
 
     ohlcv_dat = ohlcv_dat.merge(univ_dat[['symbol', 'base', 'quote']], on='symbol', how='left')

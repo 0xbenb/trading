@@ -268,9 +268,62 @@ def DB_Query_Statement(table_name: str, columns: list = None, symbol: list = Non
     return sql_statement
 
 
+
+
+def DB_Query_Statement(table_name: str, columns: list = None, symbol: list = None, time_start: str = None,
+                       time_end: str = None, most_recent: bool = None, filter_col: str = None,
+                       filter_col_vals: list = None):
+    table = Table(table_name)
+
+    # SELECT COLUMNS ELSE *
+    if columns:
+        columns = '","'.join(columns)
+        q = Query.from_(table).select(columns)
+    else:
+        q = Query.from_(table_name).select('*')
+
+    if symbol:
+        q = q.where(table.uid.isin(symbol))
+    if time_start:
+        q = q.where(table.time >= time_start)
+    if time_end:
+        q = q.where(table.time <= time_end)
+    if most_recent:
+        q_max_time = Query.from_(table_name).select(fn.Max(table.time))
+        q = q.where(table.time == q_max_time)
+
+    # ORDER ACCORDINGLY
+    if symbol:
+        q = q.orderby('symbol', 'time')  # , order=Order.desc
+    else:
+        q = q.orderby('time')  # , order=Order.desc
+
+    if filter_col:
+        q = Query.from_(table_name).select('*')
+        q = q.where(table.field(name='feature').isin(filter_col_vals))
+
+    sql_statement = str(q)
+
+    return sql_statement
+
 def DB_Query(query: str, db_engine):
 
     table_dat = pd.read_sql_query(query, con=db_engine)
 
     return table_dat
 
+def Universe_Definition(top100_ndays_ago: int, db_engine):
+    """
+
+    :param top100_ndays_ago: how many days ago in the top 100 coingecko
+    :param db_engine: sql engine
+    :return:
+    """
+    ts_nd_ago = str(datetime.utcnow() - timedelta(days=top100_ndays_ago)) # reduce the noise of coins entering / leaving universe
+    sql_q = DB_Query_Statement(table_name='universe', columns=['binance_symbol','binance_base','binance_quote'],
+                               time_start=ts_nd_ago)
+    univ_nd = DB_Query(query=sql_q, db_engine=db_engine)
+    univ_nd.columns = univ_nd.columns.str.removeprefix("binance_")
+    univ_nd = univ_nd.dropna().drop_duplicates()
+
+    return univ_nd
