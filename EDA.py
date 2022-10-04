@@ -11,8 +11,11 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.graph_objects import *
 import plotly.io as pio
-from scipy.stats import skew
 pio.renderers.default = "browser"
+from scipy.stats import skew
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 direnv.load()
 pd.options.display.max_rows = 10
 pd.options.display.max_columns = 30
@@ -128,9 +131,6 @@ px.scatter(full_dat, x='sigmoid', y='tanh')
 
 # CLEAN RETURNS (REMOVE TOP / BOTTOM 1-2.5%)
 
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
 # remove top / bottom 2.5% (per time)
 full_dat = Remove_Outliers(data=full_dat, GroupBy=['time'], lower_upper_bounds=[2.5, 97.5], variable=resp_var)
 
@@ -175,10 +175,6 @@ quicktest.dropna(inplace=True)
 quicktest['ret_1h_neutral_skew_7d_bins'] = quicktest.groupby('time')[['ret_1h_neutral_skew_7d']].\
     transform(lambda x: pd.cut(x, bins=5, labels=range(1,6)))
 
-signal_bins = quicktest.groupby('ret_1h_neutral_skew_7d_bins')['fwd_ret_6h_neutral_rmoutliers'].mean().reset_index()
-px.bar(signal_bins, x='ret_1h_neutral_skew_7d_bins', y='fwd_ret_6h_neutral_rmoutliers')
-# maybe something there
-
 signal_bins = quicktest.groupby('ret_1h_neutral_skew_7d_bins')['fwd_ret_6h_neutral_rmoutliers'].median().reset_index()
 px.bar(signal_bins, x='ret_1h_neutral_skew_7d_bins', y='fwd_ret_6h_neutral_rmoutliers')
 # less so but still meaningful difference between the tails where it matters i think for this signal
@@ -190,8 +186,6 @@ quicktest.dropna(inplace=True)
 quicktest['ret_1h_neutral_skew_7d_zscore_28d_tanh_bins'] = quicktest.groupby('time')[['ret_1h_neutral_skew_7d_zscore_28d_tanh']].\
     transform(lambda x: pd.cut(x, bins=5, labels=range(1,6)))
 
-signal_bins = quicktest.groupby('ret_1h_neutral_skew_7d_zscore_28d_tanh_bins')['fwd_ret_6h_neutral_rmoutliers'].mean().reset_index()
-px.bar(signal_bins, x='ret_1h_neutral_skew_7d_zscore_28d_tanh_bins', y='fwd_ret_6h_neutral_rmoutliers')
 # maybe something there
 
 signal_bins = quicktest.groupby('ret_1h_neutral_skew_7d_zscore_28d_tanh_bins')['fwd_ret_6h_neutral_rmoutliers'].median().reset_index()
@@ -205,6 +199,12 @@ px.bar(signal_bins, x='ret_1h_neutral_skew_7d_zscore_28d_tanh_bins', y='fwd_ret_
 # ret_1h_neutral_skew_zscore_Xd over a time period X
 
 # outstanding question -- why are all the neutral returns negative? wouldn't have thought this to be the case
+neutral_rets_rmoutlier = Remove_Outliers(data=full_dat, lower_upper_bounds=[5, 95], variable='ret_1h_neutral')
+px.histogram(neutral_rets_rmoutlier, x='ret_1h_neutral_rmoutliers')
+neutral_rets_rmoutlier['ret_1h_neutral_rmoutliers'].describe()
+
+# that makes more sense - the overall profile for
+
 # i think cross sectional zscoring is needed to be able to start differentiating these coins
 # doing based on solely their own history is only half the story
 

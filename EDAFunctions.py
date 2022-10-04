@@ -177,7 +177,7 @@ def Normalise(data: pd.DataFrame, variable: str, t_window: int, method: str):
     return data
 
 
-def Remove_Outliers(data: pd.DataFrame, GroupBy: list, lower_upper_bounds: list, variable: str):
+def Remove_Outliers(data: pd.DataFrame, lower_upper_bounds: list, variable: str, GroupBy: list = None):
     """
     
     :param data: data block  
@@ -188,11 +188,17 @@ def Remove_Outliers(data: pd.DataFrame, GroupBy: list, lower_upper_bounds: list,
     """
     def outliers(s, replace=np.nan):
         # setting to 2.5% for now
-        lower_bound, upper_bound = np.percentile(s, lower_upper_bounds)
+        lower_bound, upper_bound = np.nanpercentile(s, lower_upper_bounds)
 
         return s.where((s > lower_bound) & (s < upper_bound), replace)
 
-    data[f'{variable}_rmoutliers'] = data.groupby(GroupBy)[variable].apply(outliers)
+    if GroupBy:
+
+        data[f'{variable}_rmoutliers'] = data.groupby(GroupBy)[variable].apply(outliers)
+
+    else:
+
+        data[f'{variable}_rmoutliers'] = outliers(data[variable])
 
     return data
 
