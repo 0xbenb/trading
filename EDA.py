@@ -69,7 +69,7 @@ input_dat = input_dat.pivot(index=['time', 'coin'], columns='feature', values='v
 q = DB_Query_Statement(table_name='rets', columns=['time', 'coin', 'value'], filter_col='feature',
                        filter_col_vals=[Y[0]])
 output_dat = DB_Query(q, db_engine=engine)
-output_dat.rename({'value': 'fwd_ret'}, axis=1, inplace=True)
+output_dat.rename({'value': Y[0]}, axis=1, inplace=True)
 
 full_dat = input_dat.merge(output_dat, how='left', on=['time', 'coin'])
 full_dat.to_csv('dat/full_dat.csv', index=False)
@@ -83,25 +83,29 @@ resp_var = Y[0]
 
 Number_Observations_Time(data=full_dat[['time', 'coin', pred_var]], var_name=pred_var)
 
-# graph idea: massive tails in rets i need to clean this
-test_dat = full_dat.sample(100000)
-px.scatter(test_dat, x='volume_1h_usd', y='fwd_ret', marginal_y='histogram', marginal_x='box', trendline='ols',
-           template='plotly_dark')
-
-
 full_dat = pd.read_csv('dat/full_dat.csv')
-full_dat = full_dat[['time', 'coin', pred_var]]
-t_period = 7 * 24  # start with 1 week
+# full_dat = full_dat[['time', 'coin', pred_var]]
+skew_t_period = 7 * 24  # start with 1 week
+zscore_t_period = 28 * 24
 
+# PREPARING PREDICTOR(S) VARIABLE(S)
 
-# pandas calculates unbiased skew i.e. bias = False (scipy defaults to true)
-# If bias = False, the calculations are corrected for bias
-# To make scipy.stats.skew compute the same value as the skew() method in Pandas, add the argument bias=False.
-# scipy calculates biased skew as default i.e. bias = True
+# in terms of treating outliers, don't want to over clean. generally raw data > calculate > standardise > normalise
+# can ultimately test approach to see which option gives the best predictions
 
-full_dat = Calculate_Skew(data=full_dat, variable=pred_var, t_window=t_period, bias=False)
+# TRAILING RETURNS (CHANGE IN PRICE)
 
-full_dat = Standardise(data=full_dat, method='zscore', variable=f'{pred_var}_skew_7d', t_window=672)
+# CLEAN RETURNS
+# remove when doing backtesting?
+
+# VOLUME (CHANGE IN VOLUME)
+#   ZSCORE I.E. STANDARDISE (NEUTRAL / ZSCORE) - MAYBE JUST ZSCORE IS ENOUGH
+#   SKEW
+
+# work through just prep of 'ret_1h_neutral' before repeating similar for volume
+full_dat = Calculate_Skew(data=full_dat, variable=pred_var, t_window=skew_t_period, bias=False)
+full_dat = Standardise(data=full_dat, method='zscore', variable=f'{pred_var}_skew_7d', t_window=zscore_t_period)
+# more ways to look at this, can do cross sectionally vs peers
 
 px.histogram(full_dat, x='ret_1h_neutral_skew_7d')
 px.histogram(full_dat, x='ret_1h_neutral_skew_7d_zscore_28d') # interesting dual peak when morphing skew to zscore
@@ -112,55 +116,99 @@ px.scatter(full_dat, x='ret_1h_neutral_skew_7d', y='ret_1h_neutral_skew_7d_zscor
 # signals transforming nicely
 
 # will reduce the extremes of the values by normalising to make data more usable for modelling via a transform fn
-# tanh / sigmoid activation fn
+full_dat = Normalise(data=full_dat, variable='ret_1h_neutral_skew_7d_zscore_28d', t_window=zscore_t_period,
+                     method='tanh')
+
+px.scatter(full_dat, x='sigmoid', y='tanh')
 
 
+# FINISH PREPARING RESPONSE VARIABLE
+# for initial quicktest only going to remove outliers
+# will prepare the raw return series more thoroughly for testing relationship statistically
 
-# PREPARING PREDICTOR(S) VARIABLE(S)
-
-# in terms of treating outliers, don't want to over clean. generally raw data > calculate > standardise > normalise
-# can ultimately test approach to see which option gives the best predictions
-
-# TRAILING RETURNS (CHANGE IN PRICE)
-
-# CLEAN RETURNS
-# REMOVE TOP / BOTTOM 1-2.5%)
-# - normalise
-# - https://stackoverflow.com/questions/29275210/how-to-use-sigmoid-function-to-normalized-a-list-of-vaues
-# MAD
-# SIGMOID -1 & +1
-
-# https://stats.stackexchange.com/questions/7757/data-normalization-and-standardization-in-neural-networks
-# import sklearn
-#
-# # Normalize X, shape (n_samples, n_features)
-# X_norm = sklearn.preprocessing.normalize(X)
-
-# https://stackoverflow.com/questions/43061120/tanh-estimator-normalization-in-python
-
-
-# normalise --> scale
-# i.e. calculate z score
-# apply sigmoid function
-# done
-
-# https://www.geeksforgeeks.org/python-pytorch-tanh-method/
-# https://www.geeksforgeeks.org/python-tensorflow-nn-tanh/
-
-
-#   ZSCORE (ALREADY NEUTRAL)
-#   SKEW
-
-# VOLUME (CHANGE IN VOLUME)
-#   ZSCORE I.E. STANDARDISE (NEUTRAL / ZSCORE) - MAYBE JUST ZSCORE IS ENOUGH
-#   SKEW
-
-# FINSIH PREPARING RESPONSE VARIABLE
 # CLEAN RETURNS (REMOVE TOP / BOTTOM 1-2.5%)
-# APPLY SIGMOID FUNCTION
 
-# SPLIT INTO BUCKETS LOOK AT NEUTRAL RET PROFILE
-# DECIDE HOW TO EVOLVE / COMBINE SIGNALS
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+# remove top / bottom 2.5% (per time)
+full_dat = Remove_Outliers(data=full_dat, GroupBy=['time'], lower_upper_bounds=[2.5, 97.5], variable=resp_var)
+
+test_dat = full_dat.sample(100000)
+
+px.scatter(test_dat, x='ret_1h_neutral_skew_7d_zscore_28d_tanh', y='fwd_ret_6h_neutral_rmoutliers',
+           marginal_y='histogram', marginal_x='box', trendline='ols', template='plotly_dark')
+# R2: ret_1h_neutral_skew_7d_zscore_28d_tanh = 0.000097 slope = -0.0235178
+
+px.scatter(test_dat, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral_rmoutliers',
+           marginal_y='histogram', marginal_x='box', trendline='ols', template='plotly_dark')
+# R2: ret_1h_neutral_skew_7d = 0.000147 slope = -0.000119
+
+
+# see if removing outliers more aggressively to identify trends at this early stage
+# should output findings into data table for comparison / learning
+
+# very low R2 (rm outliers might show more of a trend)
+# ret_1h_neutral_skew_7d has better R2 but lower trend
+
+full_dat = Remove_Outliers(data=full_dat, GroupBy=['time'], lower_upper_bounds=[10, 90], variable=resp_var)
+test_dat = full_dat.sample(100000)
+px.scatter(test_dat, x='ret_1h_neutral_skew_7d_zscore_28d_tanh', y='fwd_ret_6h_neutral_rmoutliers',
+           marginal_y='histogram', marginal_x='box', trendline='ols', template='plotly_dark')
+# R2: ret_1h_neutral_skew_7d_zscore_28d_tanh = 0.000093 slope = -0.018766
+
+px.scatter(test_dat, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral_rmoutliers',
+           marginal_y='histogram', marginal_x='box', trendline='ols', template='plotly_dark')
+# R2: ret_1h_neutral_skew_7d = 0.000401 slope = -0.000147
+
+# early conclusions
+# ret_1h_neutral_skew_7d_zscore_28d_tanh lower R2 more gradient
+# ret_1h_neutral_skew_7d higher R2 lesser gradient
+
+# transformation playing a part here
+
+# should standardise return series
+
+quicktest = full_dat[['time', 'coin', 'ret_1h_neutral_skew_7d', 'fwd_ret_6h_neutral_rmoutliers']]
+quicktest.dropna(inplace=True)
+
+quicktest['ret_1h_neutral_skew_7d_bins'] = quicktest.groupby('time')[['ret_1h_neutral_skew_7d']].\
+    transform(lambda x: pd.cut(x, bins=5, labels=range(1,6)))
+
+signal_bins = quicktest.groupby('ret_1h_neutral_skew_7d_bins')['fwd_ret_6h_neutral_rmoutliers'].mean().reset_index()
+px.bar(signal_bins, x='ret_1h_neutral_skew_7d_bins', y='fwd_ret_6h_neutral_rmoutliers')
+# maybe something there
+
+signal_bins = quicktest.groupby('ret_1h_neutral_skew_7d_bins')['fwd_ret_6h_neutral_rmoutliers'].median().reset_index()
+px.bar(signal_bins, x='ret_1h_neutral_skew_7d_bins', y='fwd_ret_6h_neutral_rmoutliers')
+# less so but still meaningful difference between the tails where it matters i think for this signal
+
+
+quicktest = full_dat[['time', 'coin', 'ret_1h_neutral_skew_7d_zscore_28d_tanh', 'fwd_ret_6h_neutral_rmoutliers']]
+quicktest.dropna(inplace=True)
+
+quicktest['ret_1h_neutral_skew_7d_zscore_28d_tanh_bins'] = quicktest.groupby('time')[['ret_1h_neutral_skew_7d_zscore_28d_tanh']].\
+    transform(lambda x: pd.cut(x, bins=5, labels=range(1,6)))
+
+signal_bins = quicktest.groupby('ret_1h_neutral_skew_7d_zscore_28d_tanh_bins')['fwd_ret_6h_neutral_rmoutliers'].mean().reset_index()
+px.bar(signal_bins, x='ret_1h_neutral_skew_7d_zscore_28d_tanh_bins', y='fwd_ret_6h_neutral_rmoutliers')
+# maybe something there
+
+signal_bins = quicktest.groupby('ret_1h_neutral_skew_7d_zscore_28d_tanh_bins')['fwd_ret_6h_neutral_rmoutliers'].median().reset_index()
+px.bar(signal_bins, x='ret_1h_neutral_skew_7d_zscore_28d_tanh_bins', y='fwd_ret_6h_neutral_rmoutliers')
+
+# this quicktest aligns with previous findings about R2 for the ret_1h_neutral_skew_7d compared to the
+# ret_1h_neutral_skew_7d_zscore_28d_tanh_bins with additional z score + transformation (though transformation won't affect this test)
+# so live skew, not looking at changes (zscore) over a trailing period seems more informative
+
+# i think interesting way to test progression of this would be combining ret_1h_neutral_skew_7d (zscore) with
+# ret_1h_neutral_skew_zscore_Xd over a time period X
+
+# outstanding question -- why are all the neutral returns negative? wouldn't have thought this to be the case
+
+# without additional testing / developing i would bring forward ret_1h_neutral_skew_7d to backtest stage
+
+
 
 # BACKTEST
 

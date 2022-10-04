@@ -74,6 +74,11 @@ def Readable_Time_Window(t_window: int):
 
 def Calculate_Skew(data, variable, t_window, bias: bool):
 
+    # pandas calculates unbiased skew i.e. bias = False (scipy defaults to true)
+    # If bias = False, the calculations are corrected for bias
+    # To make scipy.stats.skew compute the same value as the skew() method in Pandas, add the argument bias=False.
+    # scipy calculates biased skew as default i.e. bias = True
+
     readable_t_window = Readable_Time_Window(t_window)
     # for unbiased data - pandas faster
     if not bias:
@@ -118,22 +123,23 @@ def Standardise(data: pd.DataFrame, method: str, t_window: int, variable: str):
     return data
 
 
-def Normalise(data: pd.DataFrame, method: str, t_window: int, variable: str):
+def Normalise(data: pd.DataFrame, variable: str, t_window: int, method: str):
     """
 
         :param data: data block of time, coin, variable, ...
-        :param method: zscore
+        :param method: sigmoid, tanh, normal
         :param t_window: time window for calculation
         :param variable: variable to standardise
         :return:
         """
 
-    # sigmoid or tanh - some say tanh has more applications down the line with models that like -ve's
+    # https://stackoverflow.com/questions/51646475/how-to-normalize-training-data-for-different-activation-functions
+    # sigmoid or tanh - some say tanh has better outlier treatment / down the line with models that like -ve's
     # e.g. neural nets with -ve hidden layers
 
-    # will use tried and trusted sigmoid for now [-1,1] range try tanh later
     def norm(x):
         # normalise x to range [-1,1]
+        x = np.array(x)
         nom = (x - x.min()) * 2.0
         denom = x.max() - x.min()
         return nom / denom - 1.0
@@ -141,17 +147,54 @@ def Normalise(data: pd.DataFrame, method: str, t_window: int, variable: str):
     def sigmoid(x, k=0.1):
         # sigmoid function
         # use k to adjust the slope
+        x = np.array(x)
         s = 1 / (1 + np.exp(-x / k))
         return s
 
-    unnormlised_data = data['ret_1h_neutral_skew_zscore']
-    x = norm(unnormlised_data)
+    def tanh(x):
+        x = np.array(x)
+        m = np.nanmean(x, axis=0)
+        std = np.nanstd(x, axis=0)
+
+        t = 0.5 * (np.tanh(0.01 * ((x - m) / std)) + 1)
+
+        return t
+
+    if method == 'normal':
+        # data['normalised'] = data[variable].rolling(t_window).apply(lambda x: norm(x)[-1])
+
+        data['norm_groupby'] = data.groupby('coin', group_keys=True)[variable].rolling(t_window).\
+            apply(lambda x: norm(x)[-1]).reset_index(level=0, drop=True)
+
+    if method == 'sigmoid':
+        data['sigmoid'] = data.groupby('coin', group_keys=True)[variable].rolling(t_window).\
+            apply(lambda x: sigmoid(x)[-1]).reset_index(level=0, drop=True)
+
+    if method == 'tanh':
+        data[f'{variable}_tanh'] = data.groupby('coin', group_keys=True)[variable].rolling(t_window).\
+            apply(lambda x: tanh(x)[-1]).reset_index(level=0, drop=True)
+
+    return data
 
 
+def Remove_Outliers(data: pd.DataFrame, GroupBy: list, lower_upper_bounds: list, variable: str):
+    """
+    
+    :param data: data block  
+    :param GroupBy: list of items to groupby 
+    :param lower_upper_bounds: list format e.g. [2.5, 97.5]
+    :param variable: variable of column to remove outliers on
+    :return: 
+    """
+    def outliers(s, replace=np.nan):
+        # setting to 2.5% for now
+        lower_bound, upper_bound = np.percentile(s, lower_upper_bounds)
 
+        return s.where((s > lower_bound) & (s < upper_bound), replace)
 
+    data[f'{variable}_rmoutliers'] = data.groupby(GroupBy)[variable].apply(outliers)
 
-
+    return data
 
 
 
