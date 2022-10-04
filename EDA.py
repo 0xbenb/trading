@@ -101,9 +101,20 @@ t_period = 7 * 24  # start with 1 week
 
 full_dat = Calculate_Skew(data=full_dat, variable=pred_var, t_window=t_period, bias=False)
 
-full_dat[f'{pred_var}_skew'] = full_dat.groupby('coin')[pred_var].rolling(t_period).skew().reset_index(level=0, drop=True)
+full_dat = Standardise(data=full_dat, method='zscore', variable=f'{pred_var}_skew_7d', t_window=672)
 
-full_dat = Standardise(data=full_dat, method='zscore', t_window=t_period, variable=f'{pred_var}_skew')
+px.histogram(full_dat, x='ret_1h_neutral_skew_7d')
+px.histogram(full_dat, x='ret_1h_neutral_skew_7d_zscore_28d') # interesting dual peak when morphing skew to zscore
+# maybe the outer regions create opportunity, or perhaps the peaks will be a source of stable/consistent signal
+# backtest will reveal
+
+px.scatter(full_dat, x='ret_1h_neutral_skew_7d', y='ret_1h_neutral_skew_7d_zscore_28d')
+# signals transforming nicely
+
+# will reduce the extremes of the values by normalising to make data more usable for modelling via a transform fn
+# tanh / sigmoid activation fn
+
+
 
 # PREPARING PREDICTOR(S) VARIABLE(S)
 
@@ -127,16 +138,6 @@ full_dat = Standardise(data=full_dat, method='zscore', t_window=t_period, variab
 
 # https://stackoverflow.com/questions/43061120/tanh-estimator-normalization-in-python
 
-unnormalizedData = np.array([1,5,3,12,1,4345,4], dtype=np.float64)
-
-m = np.mean(unnormalizedData, axis=0) # array([16.25, 26.25])
-std = np.std(unnormalizedData, axis=0) # array([17.45530005, 22.18529919])
-
-data = 0.5 * (np.tanh(0.01 * ((unnormalizedData - m) / std)) + 1)
-
-np.tanh(data)
-
-full_dat['ret_1h_neutral_tanh'] = np.tan(full_dat[pred_var])
 
 # normalise --> scale
 # i.e. calculate z score
