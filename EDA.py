@@ -205,6 +205,8 @@ px.bar(signal_bins, x='ret_1h_neutral_skew_7d_zscore_28d_tanh_bins', y='fwd_ret_
 # ret_1h_neutral_skew_zscore_Xd over a time period X
 
 # outstanding question -- why are all the neutral returns negative? wouldn't have thought this to be the case
+# i think cross sectional zscoring is needed to be able to start differentiating these coins
+# doing based on solely their own history is only half the story
 
 # without additional testing / developing i would bring forward ret_1h_neutral_skew_7d to backtest stage
 
