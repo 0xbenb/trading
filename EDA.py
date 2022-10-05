@@ -116,9 +116,9 @@ full_dat = Remove_Outliers(data=full_dat, lower_upper_bounds=[2.5, 97.5], variab
 full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variable='ret_1h_neutral_skew_7d')
 # full_dat.to_csv('dat/processed_dat.csv', index=False)
 
-#############################################
-# EARLY EVALUATION OF PREDICTORS VS RESPONSE#
-#############################################
+##############################################
+# EARLY EVALUATION OF PREDICTORS VS RESPONSE #
+##############################################
 
 full_dat = pd.read_csv('dat/processed_dat.csv')
 # SAMPLE COINs LOOK AT PREDICTOR THROUGH TIME
@@ -129,10 +129,6 @@ px.line(tmp, x='time', y='ret_1h_neutral_skew_7d')
 tmp = full_dat.sample(100000)
 px.histogram(tmp, 'ret_1h_neutral_skew_7d', nbins=15)
 px.scatter(tmp, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral', trendline='ols')
-
-data = full_dat
-bin_var = 'ret_1h_neutral_skew_7d_bins'
-output_var = Y[1]
 
 Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_bins', output_var='fwd_ret_6h')
 
