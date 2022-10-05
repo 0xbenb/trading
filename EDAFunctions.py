@@ -74,7 +74,7 @@ def Readable_Time_Window(t_window: int):
 # in terms of treating outliers, don't want to over clean / remove.
 # generally raw data > calculate > standardise > normalise
 # can ultimately test approach to see which option gives the best predictions
-data=pd.read_csv('dat/full_dat.csv')
+
 def Calculate_Skew(data, variable, t_window, bias: bool, min_obs: float):
 
     # pandas calculates unbiased skew i.e. bias = False (scipy defaults to true)
@@ -242,6 +242,15 @@ def Create_Bins(data: pd.DataFrame, GroupBy: list, variable: str):
 
     return data
 
+
+def Plot_Bins(data, bin_var, output_var):
+    data = data[['time', 'coin', bin_var, output_var]].dropna()
+    data[f'{output_var}_median'] = data.groupby('time')[Y[1]].transform('median')
+    data[f'{output_var}_neutral'] = data[output_var] - data[f'{output_var}_median']
+
+    bins_smy = data.groupby('ret_1h_neutral_skew_7d_bins')[f'{output_var}_neutral'].median().reset_index()
+
+    return px.bar(bins_smy, x=bin_var, y=f'{output_var}_neutral')
 
 
 

@@ -114,26 +114,34 @@ full_dat = Remove_Outliers(data=full_dat, lower_upper_bounds=[2.5, 97.5], variab
 full_dat = Remove_Outliers(data=full_dat, lower_upper_bounds=[2.5, 97.5], variable='fwd_ret_6h', GroupBy=['time'])
 # SIGNAL BINS
 full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variable='ret_1h_neutral_skew_7d')
+# full_dat.to_csv('dat/processed_dat.csv', index=False)
 
-print(resp_var)
-quicktest = full_dat[['time','coin','ret_1h_neutral_skew_7d_bins',Y[1]]].dropna()
-quicktest[f'{Y[1]}_median'] = quicktest.groupby('time')[Y[1]].transform('median')
-quicktest[f'{Y[1]}_neutral'] = quicktest['fwd_ret_6h'] - quicktest['fwd_ret_6h_median']
+#############################################
+# EARLY EVALUATION OF PREDICTORS VS RESPONSE#
+#############################################
 
-bins_smy = quicktest.groupby('ret_1h_neutral_skew_7d_bins')['fwd_ret_6h_neutral'].median().reset_index()
+full_dat = pd.read_csv('dat/processed_dat.csv')
+# SAMPLE COINs LOOK AT PREDICTOR THROUGH TIME
+tmp = full_dat.loc[full_dat['coin'] == 'BTC']
+px.line(tmp, x='time', y='ret_1h_neutral_skew_7d')
+# some very extreme skews, maybe the tails more interesting than the middles
 
-px.bar(bins_smy, x='ret_1h_neutral_skew_7d_bins', y='fwd_ret_6h_neutral')
-# early signs this signal looks good nice distribution good tails looks
-# now onto more thorough backtesting
+tmp = full_dat.sample(100000)
+px.histogram(tmp, 'ret_1h_neutral_skew_7d', nbins=15)
+px.scatter(tmp, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral', trendline='ols')
 
-# the issue was upon forming the signal the neutral rets from entire universe were skewing the profile down
-# unnecessarily
+data = full_dat
+bin_var = 'ret_1h_neutral_skew_7d_bins'
+output_var = Y[1]
+
+Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_bins', output_var='fwd_ret_6h')
+
+
 
 # Loose ends / Reminders
 # # factor in 1h constraint for putting on positions
 
-# px.scatter(test_dat, x='ret_1h_neutral_skew_7d_zscore_28d_tanh', y='fwd_ret_6h_neutral_rmoutliers',
-#            marginal_y='histogram', marginal_x='box', trendline='ols', template='plotly_dark')
+# do the plot of predictor vs output -- distribution + predictor values for each bucket
 
 
 
