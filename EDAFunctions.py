@@ -102,13 +102,14 @@ def Calculate_Skew(data, variable, t_window, bias: bool):
 
         return data
 
-def Standardise(data: pd.DataFrame, method: str, t_window: int, variable: str, GroupBy=: list):
+def Standardise(data: pd.DataFrame, method: str, t_window: int, variable: str, GroupBy: list):
     """
 
     :param data: data block of time, coin, variable, ...
     :param method: zscore
     :param t_window: time window for calculation
     :param variable: variable to standardise
+    :param GroupBy: variable(s) to groupby
     :return:
     """
 
@@ -179,7 +180,7 @@ def Normalise(data: pd.DataFrame, variable: str, t_window: int, method: str):
     return data
 
 
-def Remove_Outliers(data: pd.DataFrame, lower_upper_bounds: list, variable: str, GroupBy: list = None):
+def Remove_Outliers(data: pd.DataFrame, lower_upper_bounds: list, variable: str, GroupBy: list):
     """
     
     :param data: data block  
@@ -203,6 +204,38 @@ def Remove_Outliers(data: pd.DataFrame, lower_upper_bounds: list, variable: str,
         data[f'{variable}_rmoutliers'] = outliers(data[variable])
 
     return data
+
+data = pd.read_csv('dat/full_dat.csv')
+def Create_Bins(data: pd.DataFrame, GroupBy: list, variable: str):
+    """
+
+    :param data: dataframe of data to create bins
+    :param GroupBy: e.g. [time]
+    :param variable: variable to create bins from
+    :return:
+    """
+
+    # two scenarios cause problems
+    # (1) all NA
+    # (2) not enough (unique) observations per bucket
+    # lots of ways to treat this i'm going to omit buckets without these
+
+    # will build this only for time grouping for now
+    tmp = data.groupby(GroupBy).agg({variable: ['count', 'nunique']})
+    tmp.columns = tmp.columns.map('_'.join)
+    tmp.reset_index(inplace=True)
+    tmp['rm_bins'] = np.where((tmp['fwd_ret_6h_neutral_count'] < 5) | (tmp['fwd_ret_6h_neutral_nunique'] < 5), 1, 0)
+    rm_times = tmp.loc[tmp['rm_bins'] == 1]['time'].tolist()
+
+    signal_bins = data.copy(deep=True)
+    signal_bins = signal_bins[~signal_bins['time'].isin(rm_times)]
+    signal_bins[f'{variable}_bins'] = signal_bins.groupby(GroupBy)[variable].transform(lambda x: pd.cut(x, bins=5, labels=range(1,6)))
+
+    data = data.merge(signal_bins[['time', 'coin', f'{variable}_bins']], how='left', on=['time', 'coin'])
+
+    return data
+
+
 
 
 
