@@ -25,7 +25,7 @@ engine = Create_SQL_Engine()
 conn = Create_SQL_Connection(db_engine=engine)
 
 X = ['volume_1h_usd', 'ret_1h_neutral']
-Y = ['fwd_ret_6h_neutral']
+Y = ['fwd_ret_6h_neutral', 'fwd_ret_6h']
 
 # MARKET PATTERN / OBSERVATION
 # markets often quote this mixture of patterns describing them as bullish/bearish movements
@@ -69,10 +69,10 @@ input_dat = pd.concat([volume, rets], axis=0)
 input_dat = input_dat.pivot(index=['time', 'coin'], columns='feature', values='value').reset_index()
 
 # PULL IN RESPONSE FOR TESTING
-q = DB_Query_Statement(table_name='rets', columns=['time', 'coin', 'value'], filter_col='feature',
-                       filter_col_vals=[Y[0]])
+q = DB_Query_Statement(table_name='rets', columns=['time', 'coin', 'feature', 'value'], filter_col='feature',
+                       filter_col_vals=[Y[0], Y[1]])
 output_dat = DB_Query(q, db_engine=engine)
-output_dat.rename({'value': Y[0]}, axis=1, inplace=True)
+output_dat = output_dat.pivot(index=['time', 'coin'], columns='feature', values='value').reset_index()
 
 full_dat = input_dat.merge(output_dat, how='left', on=['time', 'coin'])
 full_dat.to_csv('dat/full_dat.csv', index=False)
@@ -86,29 +86,39 @@ resp_var = Y[0]
 
 Number_Observations_Time(data=full_dat[['time', 'coin', pred_var]], var_name=pred_var)
 
-full_dat = pd.read_csv('dat/full_dat.csv')
-# full_dat = full_dat[['time', 'coin', pred_var]]
-skew_t_period = 7 * 24  # start with 1 week
+skew_t_period = 7 * 24  # start with 1 week - i should find more precisely the natural oscillation frequency here
+# might need to detrend the return series
+
 zscore_t_period = 28 * 24
 
 # PREPARING PREDICTOR(S) VARIABLE(S)
 
-# in terms of treating outliers, don't want to over clean. generally raw data > calculate > standardise > normalise
-# can ultimately test approach to see which option gives the best predictions
+# RET_1H_NEUTRAL FOR NOW
+full_dat.drop(X[0], axis=1, inplace=True)
+# # confirm what this series looks like i.e. detrended - although outliers may affect
+px.line(full_dat.groupby('time')[pred_var].mean().reset_index(), x='time', y=pred_var)
+# # confirm what this series looks like
+px.line(full_dat.groupby('time')[resp_var].mean().reset_index(), x='time', y=resp_var)
 
-# TRAILING RETURNS (CHANGE IN PRICE)
+# so neutral returns behaving as expected, i wonder what the mean is of non-neutral rets
 
-# CLEAN RETURNS
-# remove when doing backtesting?
+px.line(full_dat.groupby('time')['fwd_ret_6h'].mean().reset_index(), x='time', y='fwd_ret_6h') # bigger range
 
-# VOLUME (CHANGE IN VOLUME)
-#   ZSCORE I.E. STANDARDISE (NEUTRAL / ZSCORE) - MAYBE JUST ZSCORE IS ENOUGH
-#   SKEW
+full_dat['fwd_ret_6h'].mean() # positive over the entire period. so i wonder how the signal performs if using raw ret
+# neutral returns -> 0 which is right. but i wonder when that's happening because i'm using the mean is it being skewed?
 
-# work through just prep of 'ret_1h_neutral' before repeating similar for volume
+
 full_dat = Calculate_Skew(data=full_dat, variable=pred_var, t_window=skew_t_period, bias=False)
 full_dat = Standardise(data=full_dat, method='zscore', variable=f'{pred_var}_skew_7d', t_window=zscore_t_period)
-# more ways to look at this, can do cross sectionally vs peers
+full_dat = Normalise(data=full_dat, variable='ret_1h_neutral_skew_7d_zscore_28d', t_window=zscore_t_period,
+                     method='tanh')
+full_dat = Remove_Outliers(data=full_dat, GroupBy=['time'], lower_upper_bounds=[2.5, 97.5], variable=resp_var)
+full_dat = Remove_Outliers(data=full_dat, GroupBy=['time'], lower_upper_bounds=[2.5, 97.5], variable='fwd_ret_6h')
+# All-NaN slice encountered when removing outliers i.e. no data for binance some hours
+
+full_dat.loc[full_dat['time'] == '2018-09-17 04:00:00+00:00']
+
+# more ways to look at this, can do cross sectionally vs peers might be more down the right path let's see
 
 px.histogram(full_dat, x='ret_1h_neutral_skew_7d')
 px.histogram(full_dat, x='ret_1h_neutral_skew_7d_zscore_28d') # interesting dual peak when morphing skew to zscore
@@ -118,21 +128,8 @@ px.histogram(full_dat, x='ret_1h_neutral_skew_7d_zscore_28d') # interesting dual
 px.scatter(full_dat, x='ret_1h_neutral_skew_7d', y='ret_1h_neutral_skew_7d_zscore_28d')
 # signals transforming nicely
 
-# will reduce the extremes of the values by normalising to make data more usable for modelling via a transform fn
-full_dat = Normalise(data=full_dat, variable='ret_1h_neutral_skew_7d_zscore_28d', t_window=zscore_t_period,
-                     method='tanh')
-
 px.scatter(full_dat, x='sigmoid', y='tanh')
 
-
-# FINISH PREPARING RESPONSE VARIABLE
-# for initial quicktest only going to remove outliers
-# will prepare the raw return series more thoroughly for testing relationship statistically
-
-# CLEAN RETURNS (REMOVE TOP / BOTTOM 1-2.5%)
-
-# remove top / bottom 2.5% (per time)
-full_dat = Remove_Outliers(data=full_dat, GroupBy=['time'], lower_upper_bounds=[2.5, 97.5], variable=resp_var)
 
 test_dat = full_dat.sample(100000)
 
@@ -144,22 +141,8 @@ px.scatter(test_dat, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral_rmoutlier
            marginal_y='histogram', marginal_x='box', trendline='ols', template='plotly_dark')
 # R2: ret_1h_neutral_skew_7d = 0.000147 slope = -0.000119
 
-
 # see if removing outliers more aggressively to identify trends at this early stage
 # should output findings into data table for comparison / learning
-
-# very low R2 (rm outliers might show more of a trend)
-# ret_1h_neutral_skew_7d has better R2 but lower trend
-
-full_dat = Remove_Outliers(data=full_dat, GroupBy=['time'], lower_upper_bounds=[10, 90], variable=resp_var)
-test_dat = full_dat.sample(100000)
-px.scatter(test_dat, x='ret_1h_neutral_skew_7d_zscore_28d_tanh', y='fwd_ret_6h_neutral_rmoutliers',
-           marginal_y='histogram', marginal_x='box', trendline='ols', template='plotly_dark')
-# R2: ret_1h_neutral_skew_7d_zscore_28d_tanh = 0.000093 slope = -0.018766
-
-px.scatter(test_dat, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral_rmoutliers',
-           marginal_y='histogram', marginal_x='box', trendline='ols', template='plotly_dark')
-# R2: ret_1h_neutral_skew_7d = 0.000401 slope = -0.000147
 
 # early conclusions
 # ret_1h_neutral_skew_7d_zscore_28d_tanh lower R2 more gradient
@@ -167,58 +150,37 @@ px.scatter(test_dat, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral_rmoutlier
 
 # transformation playing a part here
 
-# should standardise return series
+# could standardise normalise return series soon
 
-quicktest = full_dat[['time', 'coin', 'ret_1h_neutral_skew_7d', 'fwd_ret_6h_neutral_rmoutliers']]
+quicktest = full_dat[['time', 'coin', 'ret_1h_neutral_skew_7d', 'fwd_ret_6h_rmoutliers']]
 quicktest.dropna(inplace=True)
 
 quicktest['ret_1h_neutral_skew_7d_bins'] = quicktest.groupby('time')[['ret_1h_neutral_skew_7d']].\
     transform(lambda x: pd.cut(x, bins=5, labels=range(1,6)))
 
-signal_bins = quicktest.groupby('ret_1h_neutral_skew_7d_bins')['fwd_ret_6h_neutral_rmoutliers'].median().reset_index()
-px.bar(signal_bins, x='ret_1h_neutral_skew_7d_bins', y='fwd_ret_6h_neutral_rmoutliers')
-# less so but still meaningful difference between the tails where it matters i think for this signal
+## -- incorrect need to group by time also then average as changes of returns profiles through time will affect
+signal_bins = quicktest.groupby(['time', 'ret_1h_neutral_skew_7d_bins'])['fwd_ret_6h_rmoutliers'].\
+    median().reset_index()
+px.box(signal_bins, x='ret_1h_neutral_skew_7d_bins', y='fwd_ret_6h_rmoutliers')
+signal_bins = signal_bins.groupby('ret_1h_neutral_skew_7d_bins')['fwd_ret_6h_rmoutliers'].median().reset_index()
+px.bar(signal_bins, x='ret_1h_neutral_skew_7d_bins', y='fwd_ret_6h_rmoutliers')
 
+# SUCCESS - so the distribution is now showing a nice spread of positive to negative trends over the full period
+# so the issue here is that when the mean is slightly positive over the full period and then you look at
+# returns (neutral) the overall profile will look negative even though the signal is producing a better outcome
 
-quicktest = full_dat[['time', 'coin', 'ret_1h_neutral_skew_7d_zscore_28d_tanh', 'fwd_ret_6h_neutral_rmoutliers']]
-quicktest.dropna(inplace=True)
+full_dat.groupby('time')['fwd_ret_6h_neutral_rmoutliers'].median().mean() # all the fwd_ret_6h_neutral_rmoutlier returns have -ve skew
+full_dat.groupby('time')['fwd_ret_6h_neutral'].median().mean() # all the fwd_ret_6h_neutral_rmoutlier returns have -ve skew
 
-quicktest['ret_1h_neutral_skew_7d_zscore_28d_tanh_bins'] = quicktest.groupby('time')[['ret_1h_neutral_skew_7d_zscore_28d_tanh']].\
-    transform(lambda x: pd.cut(x, bins=5, labels=range(1,6)))
-
-# maybe something there
-
-signal_bins = quicktest.groupby('ret_1h_neutral_skew_7d_zscore_28d_tanh_bins')['fwd_ret_6h_neutral_rmoutliers'].median().reset_index()
-px.bar(signal_bins, x='ret_1h_neutral_skew_7d_zscore_28d_tanh_bins', y='fwd_ret_6h_neutral_rmoutliers')
-
-# this quicktest aligns with previous findings about R2 for the ret_1h_neutral_skew_7d compared to the
-# ret_1h_neutral_skew_7d_zscore_28d_tanh_bins with additional z score + transformation (though transformation won't affect this test)
-# so live skew, not looking at changes (zscore) over a trailing period seems more informative
-
-# i think interesting way to test progression of this would be combining ret_1h_neutral_skew_7d (zscore) with
-# ret_1h_neutral_skew_zscore_Xd over a time period X
-
-# outstanding question -- why are all the neutral returns negative? wouldn't have thought this to be the case
-neutral_rets_rmoutlier = Remove_Outliers(data=full_dat, lower_upper_bounds=[5, 95], variable='ret_1h_neutral')
-px.histogram(neutral_rets_rmoutlier, x='ret_1h_neutral_rmoutliers')
-neutral_rets_rmoutlier['ret_1h_neutral_rmoutliers'].describe()
-
-# that makes more sense - the overall profile for
-
-# i think cross sectional zscoring is needed to be able to start differentiating these coins
-# doing based on solely their own history is only half the story
-
-# without additional testing / developing i would bring forward ret_1h_neutral_skew_7d to backtest stage
-
-
+# need to pin down where this is coming from
 
 # BACKTEST
 
+# sampling a few monthly examples is a good way to understand
+px.bar(quicktest, x='ret_1h_neutral_skew_7d_bins', y='fwd_ret_6h_rmoutliers')
 
 
-
-
-
+# now to productionise backtesting 
 
 # Loose ends / Reminders
 # # factor in 1h constraint for putting on positions

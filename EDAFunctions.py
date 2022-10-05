@@ -71,6 +71,9 @@ def Readable_Time_Window(t_window: int):
 
     return readable_window
 
+# in terms of treating outliers, don't want to over clean / remove.
+# generally raw data > calculate > standardise > normalise
+# can ultimately test approach to see which option gives the best predictions
 
 def Calculate_Skew(data, variable, t_window, bias: bool):
 
@@ -99,7 +102,7 @@ def Calculate_Skew(data, variable, t_window, bias: bool):
 
         return data
 
-def Standardise(data: pd.DataFrame, method: str, t_window: int, variable: str):
+def Standardise(data: pd.DataFrame, method: str, t_window: int, variable: str, GroupBy=: list):
     """
 
     :param data: data block of time, coin, variable, ...
@@ -114,8 +117,8 @@ def Standardise(data: pd.DataFrame, method: str, t_window: int, variable: str):
     if method == 'zscore':
 
         # (N-ddof) ddof = 0 for entire population (N) or ddof = 1 for sample (N-1) (n big variance sample = pop)
-        data['mean'] = data.groupby('coin')[variable].rolling(t_window).mean().reset_index(level=0, drop=True)
-        data['std'] = data.groupby('coin')[variable].rolling(t_window).std(ddof=0).reset_index(level=0, drop=True)
+        data['mean'] = data.groupby(GroupBy)[variable].rolling(t_window).mean().reset_index(level=0, drop=True)
+        data['std'] = data.groupby(GroupBy)[variable].rolling(t_window).std(ddof=0).reset_index(level=0, drop=True)
         data[f'{variable}_zscore_{readable_t_window}'] = (data[variable] - data['mean']) / data['std']
 
         data.drop(['mean', 'std'], axis=1, inplace=True)
@@ -161,13 +164,12 @@ def Normalise(data: pd.DataFrame, variable: str, t_window: int, method: str):
         return t
 
     if method == 'normal':
-        # data['normalised'] = data[variable].rolling(t_window).apply(lambda x: norm(x)[-1])
 
-        data['norm_groupby'] = data.groupby('coin', group_keys=True)[variable].rolling(t_window).\
+        data[f'{variable}_norm'] = data.groupby('coin', group_keys=True)[variable].rolling(t_window).\
             apply(lambda x: norm(x)[-1]).reset_index(level=0, drop=True)
 
     if method == 'sigmoid':
-        data['sigmoid'] = data.groupby('coin', group_keys=True)[variable].rolling(t_window).\
+        data[f'{variable}_sigmoid'] = data.groupby('coin', group_keys=True)[variable].rolling(t_window).\
             apply(lambda x: sigmoid(x)[-1]).reset_index(level=0, drop=True)
 
     if method == 'tanh':
