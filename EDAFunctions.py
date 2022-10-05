@@ -104,7 +104,8 @@ def Calculate_Skew(data, variable, t_window, bias: bool, min_obs: float):
 
         return data
 
-def Standardise(data: pd.DataFrame, method: str, t_window: int, variable: str, GroupBy: list, min_obs: float):
+def Standardise(data: pd.DataFrame, method: str, variable: str, GroupBy: list, t_window: int = None,
+                min_obs: float = None):
     """
 
     :param data: data block of time, coin, variable, ...
@@ -112,19 +113,27 @@ def Standardise(data: pd.DataFrame, method: str, t_window: int, variable: str, G
     :param t_window: time window for calculation
     :param variable: variable to standardise
     :param GroupBy: variable(s) to groupby
+    :param min_obs: number 0-1 for threshold of occurrences before calc
     :return:
     """
 
-    readable_t_window = Readable_Time_Window(t_window)
-
-    if method == 'zscore':
-
+    if method == 'trailing_zscore':
+        readable_t_window = Readable_Time_Window(t_window)
         # (N-ddof) ddof = 0 for entire population (N) or ddof = 1 for sample (N-1) (n big variance sample = pop)
         data['mean'] = data.groupby(GroupBy)[variable].rolling(window=t_window, min_periods=round(min_obs*t_window)).\
             mean().reset_index(level=0, drop=True)
         data['std'] = data.groupby(GroupBy)[variable].rolling(window=t_window, min_periods=round(min_obs*t_window)).\
             std(ddof=0).reset_index(level=0, drop=True)
         data[f'{variable}_zscore_{readable_t_window}'] = (data[variable] - data['mean']) / data['std']
+
+        data.drop(['mean', 'std'], axis=1, inplace=True)
+
+    if method == 'xzscore':
+
+        # (N-ddof) ddof = 0 for entire population (N) or ddof = 1 for sample (N-1) (n big variance sample = pop)
+        data['mean'] = data.groupby(GroupBy)[variable].transform('mean')
+        data['std'] = data.groupby(GroupBy)[variable].transform('std')
+        data[f'{variable}_xzscore'] = (data[variable] - data['mean']) / data['std']
 
         data.drop(['mean', 'std'], axis=1, inplace=True)
 
@@ -245,10 +254,10 @@ def Create_Bins(data: pd.DataFrame, GroupBy: list, variable: str):
 
 def Plot_Bins(data, bin_var, output_var):
     data = data[['time', 'coin', bin_var, output_var]].dropna()
-    data[f'{output_var}_median'] = data.groupby('time')[Y[1]].transform('median')
+    data[f'{output_var}_median'] = data.groupby('time')[output_var].transform('median')
     data[f'{output_var}_neutral'] = data[output_var] - data[f'{output_var}_median']
 
-    bins_smy = data.groupby('ret_1h_neutral_skew_7d_bins')[f'{output_var}_neutral'].median().reset_index()
+    bins_smy = data.groupby(bin_var)[f'{output_var}_neutral'].median().reset_index()
 
     return px.bar(bins_smy, x=bin_var, y=f'{output_var}_neutral')
 

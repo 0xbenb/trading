@@ -104,8 +104,11 @@ full_dat = pd.read_csv('dat/full_dat.csv')  # instead of reimporting data from d
 # CALCULATE SKEW
 full_dat = Calculate_Skew(data=full_dat, variable=pred_var, t_window=skew_t_period, bias=False, min_obs=0.5)
 # STANDARDISE
-full_dat = Standardise(data=full_dat, method='zscore', variable=f'{pred_var}_skew_7d', t_window=zscore_t_period,
+full_dat = Standardise(data=full_dat, method='trailing_zscore', variable=f'{pred_var}_skew_7d', t_window=zscore_t_period,
                        GroupBy=['coin'], min_obs=0.5)
+full_dat = Standardise(data=full_dat, method='xzscore', variable=f'{pred_var}_skew_7d', t_window=None,
+                       GroupBy=['time'], min_obs=None)
+
 # NORMALISE
 full_dat = Normalise(data=full_dat, variable='ret_1h_neutral_skew_7d_zscore_28d', t_window=zscore_t_period,
                      method='tanh', min_obs=0.5)
@@ -114,13 +117,17 @@ full_dat = Remove_Outliers(data=full_dat, lower_upper_bounds=[2.5, 97.5], variab
 full_dat = Remove_Outliers(data=full_dat, lower_upper_bounds=[2.5, 97.5], variable='fwd_ret_6h', GroupBy=['time'])
 # SIGNAL BINS
 full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variable='ret_1h_neutral_skew_7d')
+full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variable='ret_1h_neutral_skew_7d_xzscore')
 # full_dat.to_csv('dat/processed_dat.csv', index=False)
 
 ##############################################
 # EARLY EVALUATION OF PREDICTORS VS RESPONSE #
 ##############################################
 
-full_dat = pd.read_csv('dat/processed_dat.csv')
+##########################
+# ret_1h_neutral_skew_7d #
+##########################
+
 # SAMPLE COINs LOOK AT PREDICTOR THROUGH TIME
 tmp = full_dat.loc[full_dat['coin'] == 'BTC']
 px.line(tmp, x='time', y='ret_1h_neutral_skew_7d')
@@ -132,7 +139,20 @@ px.scatter(tmp, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral', trendline='o
 
 Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_bins', output_var='fwd_ret_6h')
 
+##################################
+# ret_1h_neutral_skew_7d_xzscore #
+##################################
 
+tmp = full_dat.loc[full_dat['coin'] == 'BTC']
+px.line(tmp, x='time', y='ret_1h_neutral_skew_7d_xzscore')
+
+tmp = full_dat.sample(100000)
+px.histogram(tmp, 'ret_1h_neutral_skew_7d_xzscore', nbins=15)
+px.scatter(tmp, x='ret_1h_neutral_skew_7d_xzscore', y='fwd_ret_6h_neutral', trendline='ols')
+# this looks better. honing in on this stronger trend better R2
+Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_xzscore_bins', output_var='fwd_ret_6h')
+
+full_dat['ret_1h_neutral_skew_7d_xzscore_bins'].value_counts()  
 
 # Loose ends / Reminders
 # # factor in 1h constraint for putting on positions
