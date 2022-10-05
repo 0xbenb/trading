@@ -19,14 +19,18 @@ conn = Create_SQL_Connection(db_engine=engine)
 
 univ = Universe_Definition(top100_ndays_ago=7, db_engine=engine)
 
-# PULL PRICE AND VOLUME DATA
+###########################
+# PULL DATA FROM DATABASE #
+###########################
 
 q = DB_Query_Statement(table_name='binance_ohlcv', columns=['time', 'symbol', 'o', 'volume'])
 ohlcv = DB_Query(query=q, db_engine=engine).dropna()
 ohlcv['time'] = pd.to_datetime(ohlcv['time'], format='%Y-%m-%d %H:%M:%S')
 ohlcv.rename({'o': 'price'}, axis=1, inplace=True)
 
-# PREPARE DATA TO CALCULATE RETURNS AND VOLUME IN USD
+#########################################################
+# # PREPARE DATA TO CALCULATE RETURNS AND VOLUME IN USD #
+#########################################################
 
 ohlcv_smy = Calculate_USD_Price_Volume(ohlcv_dat=ohlcv, univ_dat=univ)
 

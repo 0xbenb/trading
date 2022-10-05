@@ -92,7 +92,7 @@ def Calculate_Returns(price_data: pd.DataFrame, time_period: int, price_name: st
 
     mkt_ret_name = f'mkt_ret_{time_period}h'
 
-    price_data[mkt_ret_name] = price_data.groupby('time')[ret_name].transform('mean')
+    price_data[mkt_ret_name] = price_data.groupby('time')[ret_name].transform('median')
 
     price_data[f'{ret_name}_neutral'] = price_data[ret_name] - price_data[mkt_ret_name]
 
