@@ -28,16 +28,18 @@ ohlcv = DB_Query(query=q, db_engine=engine).dropna()
 ohlcv['time'] = pd.to_datetime(ohlcv['time'], format='%Y-%m-%d %H:%M:%S')
 ohlcv.rename({'o': 'price'}, axis=1, inplace=True)
 
-#########################################################
-# # PREPARE DATA TO CALCULATE RETURNS AND VOLUME IN USD #
-#########################################################
+#######################################################
+# PREPARE DATA TO CALCULATE RETURNS AND VOLUME IN USD #
+#######################################################
 
 ohlcv_smy = Calculate_USD_Price_Volume(ohlcv_dat=ohlcv, univ_dat=univ)
 
 ohlcv_smy = Create_Perfect_Index(imperfect_dat=ohlcv_smy)
 
-# RANGE OF FORWARD/TRAILING RETURN TIME PERIODS
-# INCLUDING NEUTRAL RETURNS
+########################################################
+# RANGE OF TIME PERIODS FORWARD/TRAILING RETURNS/NEUTRAL
+########################################################
+
 ret_periods = [1, -1, 3, -3, 6, -6, 12, -12, 24, -24, 72, -72, 168, -168]
 all_returns = [Calculate_Returns(price_data=ohlcv_smy, time_period=i, price_name='price_usd') for i in ret_periods]
 
@@ -58,7 +60,7 @@ Create_Database_Table(table_name='rets', db_engine=engine, db_conn=conn)
 
 data_splits = Data_Splitter(import_dat, max_rows=10**6)
 
-# IMPORT RETURNS DATA
+# RETURNS
 for dat in data_splits:
     pop(data=dat, table_name='rets', db_engine=engine)
 
@@ -70,7 +72,7 @@ print(time.time() - t0)
 # would be good to store this info of t_start t_end into database (same for ohlcv)
 # stored proc for postgres?
 
-# IMPORT VOLUMES TO FEATURES
+# VOLUMES
 ohlcv_smy = ohlcv_smy[ohlcv_smy['feature'] == 'volume_1h_usd']
 
 Create_Database_Table(table_name='features', db_engine=engine, db_conn=conn)

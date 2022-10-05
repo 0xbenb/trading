@@ -259,8 +259,10 @@ def Plot_Bins(data, bin_var, output_var):
 
     bins_smy = data.groupby(bin_var)[f'{output_var}_neutral'].median().reset_index()
 
-    return px.bar(bins_smy, x=bin_var, y=f'{output_var}_neutral')
+    fig = px.bar(bins_smy, x=bin_var, y=f'{output_var}_neutral')
+    fig.show()
 
+    return bins_smy
 
 
 

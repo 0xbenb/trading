@@ -120,9 +120,9 @@ full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variable='ret_1h_neutral
 full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variable='ret_1h_neutral_skew_7d_xzscore')
 # full_dat.to_csv('dat/processed_dat.csv', index=False)
 
-##############################################
-# EARLY EVALUATION OF PREDICTORS VS RESPONSE #
-##############################################
+########################################
+# QUICK TEST OF PREDICTORS VS RESPONSE #
+########################################
 
 ##########################
 # ret_1h_neutral_skew_7d #
@@ -137,8 +137,8 @@ tmp = full_dat.sample(100000)
 px.histogram(tmp, 'ret_1h_neutral_skew_7d', nbins=15)
 px.scatter(tmp, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral', trendline='ols')
 
-Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_bins', output_var='fwd_ret_6h')
-
+bin_smy = Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_bins', output_var='fwd_ret_6h')
+bin_smy.iloc[:,1]*100
 ##################################
 # ret_1h_neutral_skew_7d_xzscore #
 ##################################
@@ -150,9 +150,11 @@ tmp = full_dat.sample(100000)
 px.histogram(tmp, 'ret_1h_neutral_skew_7d_xzscore', nbins=15)
 px.scatter(tmp, x='ret_1h_neutral_skew_7d_xzscore', y='fwd_ret_6h_neutral', trendline='ols')
 # this looks better. honing in on this stronger trend better R2
-Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_xzscore_bins', output_var='fwd_ret_6h')
+bin_smy = Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_xzscore_bins', output_var='fwd_ret_6h')
+print(bin_smy.iloc[:,1]*100)
 
-full_dat['ret_1h_neutral_skew_7d_xzscore_bins'].value_counts()  
+# double check this + output from both bin_smy
+full_dat['ret_1h_neutral_skew_7d_xzscore_bins'].value_counts()
 
 # Loose ends / Reminders
 # # factor in 1h constraint for putting on positions
