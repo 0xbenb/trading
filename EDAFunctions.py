@@ -74,8 +74,8 @@ def Readable_Time_Window(t_window: int):
 # in terms of treating outliers, don't want to over clean / remove.
 # generally raw data > calculate > standardise > normalise
 # can ultimately test approach to see which option gives the best predictions
-
-def Calculate_Skew(data, variable, t_window, bias: bool):
+data=pd.read_csv('dat/full_dat.csv')
+def Calculate_Skew(data, variable, t_window, bias: bool, min_obs: float):
 
     # pandas calculates unbiased skew i.e. bias = False (scipy defaults to true)
     # If bias = False, the calculations are corrected for bias
@@ -86,14 +86,16 @@ def Calculate_Skew(data, variable, t_window, bias: bool):
     # for unbiased data - pandas faster
     if not bias:
         data[f'{variable}_skew_{readable_t_window}'] = data.groupby('coin')[variable].\
-            rolling(t_window).skew().reset_index(level=0, drop=True)
+            rolling(window=t_window, min_periods=round(min_obs*t_window)).\
+            skew(skipna=True).reset_index(level=0, drop=True)
 
         return data
 
     # for biased data
     if bias:
         def calc_skew(x):
-            return skew(x, bias=True)  # calculations are corrected for bias is bias=False (scipy defaults to True)
+            return skew(x, nan_policy='omit', bias=False)
+            # calculations are corrected for bias if bias=False (scipy defaults to True)
 
         res = data.groupby('coin', group_keys=True)['ret_1h_neutral'].apply(
             lambda x: x.rolling(t_window).apply(calc_skew)
@@ -102,7 +104,7 @@ def Calculate_Skew(data, variable, t_window, bias: bool):
 
         return data
 
-def Standardise(data: pd.DataFrame, method: str, t_window: int, variable: str, GroupBy: list):
+def Standardise(data: pd.DataFrame, method: str, t_window: int, variable: str, GroupBy: list, min_obs: float):
     """
 
     :param data: data block of time, coin, variable, ...
@@ -118,8 +120,10 @@ def Standardise(data: pd.DataFrame, method: str, t_window: int, variable: str, G
     if method == 'zscore':
 
         # (N-ddof) ddof = 0 for entire population (N) or ddof = 1 for sample (N-1) (n big variance sample = pop)
-        data['mean'] = data.groupby(GroupBy)[variable].rolling(t_window).mean().reset_index(level=0, drop=True)
-        data['std'] = data.groupby(GroupBy)[variable].rolling(t_window).std(ddof=0).reset_index(level=0, drop=True)
+        data['mean'] = data.groupby(GroupBy)[variable].rolling(window=t_window, min_periods=round(min_obs*t_window)).\
+            mean().reset_index(level=0, drop=True)
+        data['std'] = data.groupby(GroupBy)[variable].rolling(window=t_window, min_periods=round(min_obs*t_window)).\
+            std(ddof=0).reset_index(level=0, drop=True)
         data[f'{variable}_zscore_{readable_t_window}'] = (data[variable] - data['mean']) / data['std']
 
         data.drop(['mean', 'std'], axis=1, inplace=True)
@@ -127,7 +131,7 @@ def Standardise(data: pd.DataFrame, method: str, t_window: int, variable: str, G
     return data
 
 
-def Normalise(data: pd.DataFrame, variable: str, t_window: int, method: str):
+def Normalise(data: pd.DataFrame, variable: str, t_window: int, method: str, min_obs: float):
     """
 
         :param data: data block of time, coin, variable, ...
@@ -166,15 +170,18 @@ def Normalise(data: pd.DataFrame, variable: str, t_window: int, method: str):
 
     if method == 'normal':
 
-        data[f'{variable}_norm'] = data.groupby('coin', group_keys=True)[variable].rolling(t_window).\
+        data[f'{variable}_norm'] = data.groupby('coin', group_keys=True)[variable].\
+            rolling(window=t_window, min_periods=round(min_obs*t_window)).\
             apply(lambda x: norm(x)[-1]).reset_index(level=0, drop=True)
 
     if method == 'sigmoid':
-        data[f'{variable}_sigmoid'] = data.groupby('coin', group_keys=True)[variable].rolling(t_window).\
+        data[f'{variable}_sigmoid'] = data.groupby('coin', group_keys=True)[variable].\
+            rolling(window=t_window, min_periods=round(min_obs*t_window)).\
             apply(lambda x: sigmoid(x)[-1]).reset_index(level=0, drop=True)
 
     if method == 'tanh':
-        data[f'{variable}_tanh'] = data.groupby('coin', group_keys=True)[variable].rolling(t_window).\
+        data[f'{variable}_tanh'] = data.groupby('coin', group_keys=True)[variable].\
+            rolling(window=t_window, min_periods=round(min_obs*t_window)).\
             apply(lambda x: tanh(x)[-1]).reset_index(level=0, drop=True)
 
     return data
@@ -205,7 +212,7 @@ def Remove_Outliers(data: pd.DataFrame, lower_upper_bounds: list, variable: str,
 
     return data
 
-data = pd.read_csv('dat/full_dat.csv')
+
 def Create_Bins(data: pd.DataFrame, GroupBy: list, variable: str):
     """
 
@@ -224,7 +231,7 @@ def Create_Bins(data: pd.DataFrame, GroupBy: list, variable: str):
     tmp = data.groupby(GroupBy).agg({variable: ['count', 'nunique']})
     tmp.columns = tmp.columns.map('_'.join)
     tmp.reset_index(inplace=True)
-    tmp['rm_bins'] = np.where((tmp['fwd_ret_6h_neutral_count'] < 5) | (tmp['fwd_ret_6h_neutral_nunique'] < 5), 1, 0)
+    tmp['rm_bins'] = np.where((tmp[f'{variable}_count'] < 5) | (tmp[f'{variable}_nunique'] < 5), 1, 0)
     rm_times = tmp.loc[tmp['rm_bins'] == 1]['time'].tolist()
 
     signal_bins = data.copy(deep=True)

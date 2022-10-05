@@ -99,23 +99,25 @@ Number_Observations_Time(data=full_dat[['time', 'coin', pred_var]], var_name=pre
 # PREPARE PREDICTOR VARIABLES #
 ###############################
 
-full_dat = pd.read_csv('dat/full_dat.csv')
-full_dat['fwd_ret_6h_neutral'].mean() # this is very close to 0
+full_dat = pd.read_csv('dat/full_dat.csv')  # instead of reimporting data from db
 
 # CALCULATE SKEW
-full_dat = Calculate_Skew(data=full_dat, variable=pred_var, t_window=skew_t_period, bias=False)
+full_dat = Calculate_Skew(data=full_dat, variable=pred_var, t_window=skew_t_period, bias=False, min_obs=0.5)
 # STANDARDISE
-full_dat = Standardise(data=full_dat, method='zscore', variable=f'{pred_var}_skew_7d', t_window=zscore_t_period)
+full_dat = Standardise(data=full_dat, method='zscore', variable=f'{pred_var}_skew_7d', t_window=zscore_t_period,
+                       GroupBy=['coin'], min_obs=0.5)
 # NORMALISE
 full_dat = Normalise(data=full_dat, variable='ret_1h_neutral_skew_7d_zscore_28d', t_window=zscore_t_period,
-                     method='tanh')
+                     method='tanh', min_obs=0.5)
 # REMOVE OUTLIERS
-full_dat = Remove_Outliers(data=full_dat, GroupBy=['time'], lower_upper_bounds=[2.5, 97.5], variable=resp_var)
-full_dat = Remove_Outliers(data=full_dat, GroupBy=['time'], lower_upper_bounds=[2.5, 97.5], variable='fwd_ret_6h')
+full_dat = Remove_Outliers(data=full_dat, lower_upper_bounds=[2.5, 97.5], variable=resp_var, GroupBy=['time'])
+full_dat = Remove_Outliers(data=full_dat, lower_upper_bounds=[2.5, 97.5], variable='fwd_ret_6h', GroupBy=['time'])
 # SIGNAL BINS
 full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variable='ret_1h_neutral_skew_7d')
 
-
+quicktest = full_dat[['ret_1h_neutral_skew_7d_bins','fwd_ret_6h_neutral']].dropna()
+quicktest['fwd_ret_6h_neutral'].median()
+full_dat.groupby('ret_1h_neutral_skew_7d_bins')['fwd_ret_6h_neutral'].median()
 
 # Loose ends / Reminders
 # # factor in 1h constraint for putting on positions
