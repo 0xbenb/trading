@@ -115,9 +115,19 @@ full_dat = Remove_Outliers(data=full_dat, lower_upper_bounds=[2.5, 97.5], variab
 # SIGNAL BINS
 full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variable='ret_1h_neutral_skew_7d')
 
-quicktest = full_dat[['ret_1h_neutral_skew_7d_bins','fwd_ret_6h_neutral']].dropna()
-quicktest['fwd_ret_6h_neutral'].median()
-full_dat.groupby('ret_1h_neutral_skew_7d_bins')['fwd_ret_6h_neutral'].median()
+print(resp_var)
+quicktest = full_dat[['time','coin','ret_1h_neutral_skew_7d_bins',Y[1]]].dropna()
+quicktest[f'{Y[1]}_median'] = quicktest.groupby('time')[Y[1]].transform('median')
+quicktest[f'{Y[1]}_neutral'] = quicktest['fwd_ret_6h'] - quicktest['fwd_ret_6h_median']
+
+bins_smy = quicktest.groupby('ret_1h_neutral_skew_7d_bins')['fwd_ret_6h_neutral'].median().reset_index()
+
+px.bar(bins_smy, x='ret_1h_neutral_skew_7d_bins', y='fwd_ret_6h_neutral')
+# early signs this signal looks good nice distribution good tails looks
+# now onto more thorough backtesting
+
+# the issue was upon forming the signal the neutral rets from entire universe were skewing the profile down
+# unnecessarily
 
 # Loose ends / Reminders
 # # factor in 1h constraint for putting on positions
