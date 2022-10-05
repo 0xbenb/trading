@@ -48,26 +48,29 @@ all_returns = pd.melt(all_returns, id_vars=['time', 'coin'], var_name='feature')
 ohlcv_smy.rename({'price': 'price_usd'}, axis=1, inplace=True)
 ohlcv_smy = pd.melt(ohlcv_smy, id_vars=['time', 'coin'], var_name='feature')
 
-# messy tidy up later
+###########################
+# IMPORT DATA TO DATABASE #
+###########################
+
 import_dat = pd.concat([all_returns, ohlcv_smy[ohlcv_smy['feature'] == 'price_usd']], axis=0)
 
 Create_Database_Table(table_name='rets', db_engine=engine, db_conn=conn)
 
 data_splits = Data_Splitter(import_dat, max_rows=10**6)
 
+# IMPORT RETURNS DATA
 for dat in data_splits:
     pop(data=dat, table_name='rets', db_engine=engine)
 
 t0 = time.time()
-q = "select distinct time, symbol from rets"
+q = "select distinct time, coin from rets"
 dat = pd.read_sql_query(q, con=engine)
 print(time.time() - t0)
 # 39 second query - inefficient way, will do for now can store this output more efficiently later
 # would be good to store this info of t_start t_end into database (same for ohlcv)
 # stored proc for postgres?
 
-## import volumes to features
-
+# IMPORT VOLUMES TO FEATURES
 ohlcv_smy = ohlcv_smy[ohlcv_smy['feature'] == 'volume_1h_usd']
 
 Create_Database_Table(table_name='features', db_engine=engine, db_conn=conn)
