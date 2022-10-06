@@ -27,9 +27,9 @@ conn = Create_SQL_Connection(db_engine=engine)
 X = ['volume_1h_usd', 'ret_1h_neutral']
 Y = ['fwd_ret_6h_neutral', 'fwd_ret_6h']
 
-###########################
+#########################
 #  INTRO RESEARCH TOPIC #
-###########################
+#########################
 
 # MARKET PATTERN / OBSERVATION
 # markets often quote this mixture of patterns describing them as bullish/bearish movements
@@ -90,8 +90,8 @@ full_dat = input_dat.merge(output_dat, how='left', on=['time', 'coin'])
 # CAN LOOP THROUGH VARIATIONS
 pred_var = X[1]
 resp_var = Y[0]
-skew_t_period = 7 * 24
-zscore_t_period = 28 * 24
+skew_t_periods = [168, 168]
+zscore_t_periods = [672, 672]
 
 Number_Observations_Time(data=full_dat[['time', 'coin', pred_var]], var_name=pred_var)
 
@@ -102,22 +102,29 @@ Number_Observations_Time(data=full_dat[['time', 'coin', pred_var]], var_name=pre
 full_dat = pd.read_csv('dat/full_dat.csv')  # instead of reimporting data from db
 
 # CALCULATE SKEW
-full_dat = Calculate_Skew(data=full_dat, variable=pred_var, t_window=skew_t_period, bias=False, min_obs=0.5)
+full_dat = Calculate_Skew(data=full_dat, variables=X, t_windows=skew_t_periods, bias=False, min_obs=0.5)
+full_dat, skew_features = full_dat[0], full_dat[1]  # can wrap all processes into a fn / method later
 # STANDARDISE
-full_dat = Standardise(data=full_dat, method='trailing_zscore', variable=f'{pred_var}_skew_7d', t_window=zscore_t_period,
+# trailing zscore
+full_dat = Standardise(data=full_dat, method='trailing_zscore', variables=skew_features, t_windows=zscore_t_periods,
                        GroupBy=['coin'], min_obs=0.5)
-full_dat = Standardise(data=full_dat, method='xzscore', variable=f'{pred_var}_skew_7d', t_window=None,
-                       GroupBy=['time'], min_obs=None)
+full_dat, trailing_zscore_features = full_dat[0], full_dat[1]  # can wrap all processes into a fn / method later
+# xscore
+full_dat = Standardise(data=full_dat, method='xzscore', variables=skew_features,
+                       GroupBy=['time'])
+full_dat, xscore_features = full_dat[0], full_dat[1]  # can wrap all processes into a fn / method later
 
 # NORMALISE
-full_dat = Normalise(data=full_dat, variable='ret_1h_neutral_skew_7d_zscore_28d', t_window=zscore_t_period,
+full_dat = Normalise(data=full_dat, variables=trailing_zscore_features, t_windows=zscore_t_periods,
                      method='tanh', min_obs=0.5)
+full_dat, norm_features = full_dat[0], full_dat[1]  # can wrap all processes into a fn / method later
 # REMOVE OUTLIERS
-full_dat = Remove_Outliers(data=full_dat, lower_upper_bounds=[2.5, 97.5], variable=resp_var, GroupBy=['time'])
-full_dat = Remove_Outliers(data=full_dat, lower_upper_bounds=[2.5, 97.5], variable='fwd_ret_6h', GroupBy=['time'])
+full_dat = Remove_Outliers(data=full_dat, lower_upper_bounds=[2.5, 97.5], variables=Y, GroupBy=['time'])
+full_dat, rmoutlier_features = full_dat[0], full_dat[1]
 # SIGNAL BINS
-full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variable='ret_1h_neutral_skew_7d')
-full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variable='ret_1h_neutral_skew_7d_xzscore')
+predictors = skew_features + trailing_zscore_features + xscore_features + norm_features
+full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variables=predictors)
+full_dat, predictors_bins = full_dat[0], full_dat[1]
 # full_dat.to_csv('dat/processed_dat.csv', index=False)
 
 ########################################
@@ -139,6 +146,7 @@ px.scatter(tmp, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral', trendline='o
 
 bin_smy = Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_bins', output_var='fwd_ret_6h')
 bin_smy.iloc[:,1]*100
+
 ##################################
 # ret_1h_neutral_skew_7d_xzscore #
 ##################################

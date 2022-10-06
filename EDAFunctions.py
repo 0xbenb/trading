@@ -75,78 +75,97 @@ def Readable_Time_Window(t_window: int):
 # generally raw data > calculate > standardise > normalise
 # can ultimately test approach to see which option gives the best predictions
 
-def Calculate_Skew(data, variable, t_window, bias: bool, min_obs: float):
+def Calculate_Skew(data: pd.DataFrame, variables: list, t_windows: list, bias: bool, min_obs: float):
 
     # pandas calculates unbiased skew i.e. bias = False (scipy defaults to true)
     # If bias = False, the calculations are corrected for bias
     # To make scipy.stats.skew compute the same value as the skew() method in Pandas, add the argument bias=False.
     # scipy calculates biased skew as default i.e. bias = True
 
-    readable_t_window = Readable_Time_Window(t_window)
-    # for unbiased data - pandas faster
-    if not bias:
-        data[f'{variable}_skew_{readable_t_window}'] = data.groupby('coin')[variable].\
-            rolling(window=t_window, min_periods=round(min_obs*t_window)).\
-            skew(skipna=True).reset_index(level=0, drop=True)
+    new_features = []
+    for variable, t_window in zip(variables, t_windows):
 
-        return data
+        readable_t_window = Readable_Time_Window(t_window)
 
-    # for biased data
-    if bias:
-        def calc_skew(x):
-            return skew(x, nan_policy='omit', bias=False)
-            # calculations are corrected for bias if bias=False (scipy defaults to True)
+        if not bias:
 
-        res = data.groupby('coin', group_keys=True)['ret_1h_neutral'].apply(
-            lambda x: x.rolling(t_window).apply(calc_skew)
-        )
-        data['skew'] = res.reset_index(level=0, drop=True)
+            new_feature = f'{variable}_skew_{readable_t_window}'
+            data[new_feature] = data.groupby('coin')[variable].\
+                rolling(window=t_window, min_periods=round(min_obs*t_window)).\
+                skew(skipna=True).reset_index(level=0, drop=True)
 
-        return data
+            new_features.append(new_feature)
 
-def Standardise(data: pd.DataFrame, method: str, variable: str, GroupBy: list, t_window: int = None,
+        # for biased data
+        # if bias:
+        #     def calc_skew(x):
+        #         return skew(x, nan_policy='omit', bias=False)
+        #         # calculations are corrected for bias if bias=False (scipy defaults to True)
+        #
+        #     res = data.groupby('coin', group_keys=True)['ret_1h_neutral'].apply(
+        #         lambda x: x.rolling(t_window).apply(calc_skew)
+        #     )
+        #     data['skew'] = res.reset_index(level=0, drop=True)
+
+    return data, new_features
+
+def Standardise(data: pd.DataFrame, method: str, variables: list, GroupBy: list, t_windows: list = None,
                 min_obs: float = None):
     """
 
     :param data: data block of time, coin, variable, ...
     :param method: zscore
-    :param t_window: time window for calculation
-    :param variable: variable to standardise
+    :param t_windows: time window for calculation
+    :param variables: variable to standardise
     :param GroupBy: variable(s) to groupby
     :param min_obs: number 0-1 for threshold of occurrences before calc
     :return:
     """
 
     if method == 'trailing_zscore':
-        readable_t_window = Readable_Time_Window(t_window)
-        # (N-ddof) ddof = 0 for entire population (N) or ddof = 1 for sample (N-1) (n big variance sample = pop)
-        data['mean'] = data.groupby(GroupBy)[variable].rolling(window=t_window, min_periods=round(min_obs*t_window)).\
-            mean().reset_index(level=0, drop=True)
-        data['std'] = data.groupby(GroupBy)[variable].rolling(window=t_window, min_periods=round(min_obs*t_window)).\
-            std(ddof=0).reset_index(level=0, drop=True)
-        data[f'{variable}_zscore_{readable_t_window}'] = (data[variable] - data['mean']) / data['std']
 
-        data.drop(['mean', 'std'], axis=1, inplace=True)
+        new_features = []
+        for variable, t_window in zip(variables, t_windows):
+
+            readable_t_window = Readable_Time_Window(t_window)
+            new_feature = f'{variable}_zscore_{readable_t_window}'
+
+            # (N-ddof) ddof = 0 for entire population (N) or ddof = 1 for sample (N-1) (n big variance sample = pop)
+            data['mean'] = data.groupby(GroupBy)[variable].rolling(window=t_window, min_periods=round(min_obs*t_window)).\
+                mean().reset_index(level=0, drop=True)
+            data['std'] = data.groupby(GroupBy)[variable].rolling(window=t_window, min_periods=round(min_obs*t_window)).\
+                std(ddof=0).reset_index(level=0, drop=True)
+            data[new_feature] = (data[variable] - data['mean']) / data['std']
+
+            data.drop(['mean', 'std'], axis=1, inplace=True)
+
+            new_features.append(new_feature)
 
     if method == 'xzscore':
 
-        # (N-ddof) ddof = 0 for entire population (N) or ddof = 1 for sample (N-1) (n big variance sample = pop)
-        data['mean'] = data.groupby(GroupBy)[variable].transform('mean')
-        data['std'] = data.groupby(GroupBy)[variable].transform('std')
-        data[f'{variable}_xzscore'] = (data[variable] - data['mean']) / data['std']
+        new_features = []
+        for variable in variables:
 
-        data.drop(['mean', 'std'], axis=1, inplace=True)
+            new_feature = f'{variable}_xzscore'
+            # (N-ddof) ddof = 0 for entire population (N) or ddof = 1 for sample (N-1) (n big variance sample = pop)
+            data['mean'] = data.groupby(GroupBy)[variable].transform('mean')
+            data['std'] = data.groupby(GroupBy)[variable].transform('std')
+            data[new_feature] = (data[variable] - data['mean']) / data['std']
 
-    return data
+            data.drop(['mean', 'std'], axis=1, inplace=True)
+
+            new_features.append(new_feature)
+
+    return data, new_features
 
 
-def Normalise(data: pd.DataFrame, variable: str, t_window: int, method: str, min_obs: float):
+def Normalise(data: pd.DataFrame, variables: list, t_windows: int, method: str, min_obs: float):
     """
 
         :param data: data block of time, coin, variable, ...
         :param method: sigmoid, tanh, normal
-        :param t_window: time window for calculation
-        :param variable: variable to standardise
+        :param t_windows: time window for calculation
+        :param variables: variable to standardise
         :return:
         """
 
@@ -177,57 +196,69 @@ def Normalise(data: pd.DataFrame, variable: str, t_window: int, method: str, min
 
         return t
 
-    if method == 'normal':
+    new_features = []
+    for variable, t_window in zip(variables, t_windows):
 
-        data[f'{variable}_norm'] = data.groupby('coin', group_keys=True)[variable].\
-            rolling(window=t_window, min_periods=round(min_obs*t_window)).\
-            apply(lambda x: norm(x)[-1]).reset_index(level=0, drop=True)
+        if method == 'normal':
+            new_feature = f'{variable}_norm'
+            data[new_feature] = data.groupby('coin', group_keys=True)[variable].\
+                rolling(window=t_window, min_periods=round(min_obs*t_window)).\
+                apply(lambda x: norm(x)[-1]).reset_index(level=0, drop=True)
 
-    if method == 'sigmoid':
-        data[f'{variable}_sigmoid'] = data.groupby('coin', group_keys=True)[variable].\
-            rolling(window=t_window, min_periods=round(min_obs*t_window)).\
-            apply(lambda x: sigmoid(x)[-1]).reset_index(level=0, drop=True)
+        if method == 'sigmoid':
+            new_feature = f'{variable}_sigmoid'
+            data[new_feature] = data.groupby('coin', group_keys=True)[variable].\
+                rolling(window=t_window, min_periods=round(min_obs*t_window)).\
+                apply(lambda x: sigmoid(x)[-1]).reset_index(level=0, drop=True)
 
-    if method == 'tanh':
-        data[f'{variable}_tanh'] = data.groupby('coin', group_keys=True)[variable].\
-            rolling(window=t_window, min_periods=round(min_obs*t_window)).\
-            apply(lambda x: tanh(x)[-1]).reset_index(level=0, drop=True)
+        if method == 'tanh':
+            new_feature = f'{variable}_tanh'
+            data[new_feature] = data.groupby('coin', group_keys=True)[variable].\
+                rolling(window=t_window, min_periods=round(min_obs*t_window)).\
+                apply(lambda x: tanh(x)[-1]).reset_index(level=0, drop=True)
 
-    return data
+        new_features.append(new_feature)
+
+    return data, new_features
 
 
-def Remove_Outliers(data: pd.DataFrame, lower_upper_bounds: list, variable: str, GroupBy: list):
+def Remove_Outliers(data: pd.DataFrame, lower_upper_bounds: list, variables: list, GroupBy: list):
     """
     
     :param data: data block  
     :param GroupBy: list of items to groupby 
     :param lower_upper_bounds: list format e.g. [2.5, 97.5]
-    :param variable: variable of column to remove outliers on
+    :param variables: variable of column to remove outliers on
     :return: 
     """
+
     def outliers(s, replace=np.nan):
         # setting to 2.5% for now
         lower_bound, upper_bound = np.nanpercentile(s, lower_upper_bounds)
 
         return s.where((s > lower_bound) & (s < upper_bound), replace)
 
-    if GroupBy:
+    new_features = []
+    for variable in variables:
+        new_feature = f'{variable}_rmoutliers'
 
-        data[f'{variable}_rmoutliers'] = data.groupby(GroupBy)[variable].apply(outliers)
+        if GroupBy:
+            data[new_feature] = data.groupby(GroupBy)[variable].apply(outliers)
 
-    else:
+        else:
+            data[new_feature] = outliers(data[variable])
 
-        data[f'{variable}_rmoutliers'] = outliers(data[variable])
+        new_features.append(new_feature)
 
-    return data
+    return data, new_features
 
 
-def Create_Bins(data: pd.DataFrame, GroupBy: list, variable: str):
+def Create_Bins(data: pd.DataFrame, GroupBy: list, variables: list):
     """
 
     :param data: dataframe of data to create bins
     :param GroupBy: e.g. [time]
-    :param variable: variable to create bins from
+    :param variables: variable to create bins from
     :return:
     """
 
@@ -236,20 +267,26 @@ def Create_Bins(data: pd.DataFrame, GroupBy: list, variable: str):
     # (2) not enough (unique) observations per bucket
     # lots of ways to treat this i'm going to omit buckets without these
 
-    # will build this only for time grouping for now
-    tmp = data.groupby(GroupBy).agg({variable: ['count', 'nunique']})
-    tmp.columns = tmp.columns.map('_'.join)
-    tmp.reset_index(inplace=True)
-    tmp['rm_bins'] = np.where((tmp[f'{variable}_count'] < 5) | (tmp[f'{variable}_nunique'] < 5), 1, 0)
-    rm_times = tmp.loc[tmp['rm_bins'] == 1]['time'].tolist()
+    new_features = []
+    for variable in variables:
+        new_feature = f'{variable}_bins'
 
-    signal_bins = data.copy(deep=True)
-    signal_bins = signal_bins[~signal_bins['time'].isin(rm_times)]
-    signal_bins[f'{variable}_bins'] = signal_bins.groupby(GroupBy)[variable].transform(lambda x: pd.cut(x, bins=5, labels=range(1,6)))
+        # will build this only for time grouping for now
+        tmp = data.groupby(GroupBy).agg({variable: ['count', 'nunique']})
+        tmp.columns = tmp.columns.map('_'.join)
+        tmp.reset_index(inplace=True)
+        tmp['rm_bins'] = np.where((tmp[f'{variable}_count'] < 5) | (tmp[f'{variable}_nunique'] < 5), 1, 0)
+        rm_times = tmp.loc[tmp['rm_bins'] == 1]['time'].tolist()
 
-    data = data.merge(signal_bins[['time', 'coin', f'{variable}_bins']], how='left', on=['time', 'coin'])
+        signal_bins = data.copy(deep=True)
+        signal_bins = signal_bins[~signal_bins['time'].isin(rm_times)]
+        signal_bins[new_feature] = signal_bins.groupby(GroupBy)[variable].transform(lambda x: pd.cut(x, bins=5, labels=range(1,6)))
 
-    return data
+        data = data.merge(signal_bins[['time', 'coin', new_feature]], how='left', on=['time', 'coin'])
+
+        new_features.append(new_feature)
+
+    return data, new_features
 
 
 def Plot_Bins(data, bin_var, output_var):
