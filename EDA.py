@@ -127,9 +127,24 @@ full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variables=predictors)
 full_dat, predictors_bins = full_dat[0], full_dat[1]
 # full_dat.to_csv('dat/processed_dat.csv', index=False)
 
-########################################
-# QUICK TEST OF PREDICTORS VS RESPONSE #
-########################################
+###################################
+# TEST PREDICTORS X VS RESPONSE Y #
+###################################
+
+# FOR PREDICTOR X
+# look at distribution (hist) of PREDICTOR X
+# look through time e.g. per sample of coins get a feel
+# adfuller test of stationarity (mean variance through time) to ensure properties don't change through t
+# study outliers
+# discretise / create bins of PREDICTOR X
+# transition matrix for PREDICTOR X to understand probability that it goes from state i, j for FEATURE X
+
+# COMBINE PREDICTOR X WITH RESPONSE Y
+# plot expected value of RESPONSE Y vs discretised PREDICTOR X
+# discretise / create bins of RESPONSE Y
+# transition matrix to understand transition between state i in PREDICTOR X to the state j in RESPONSE Y
+
+
 
 ##########################
 # ret_1h_neutral_skew_7d #
