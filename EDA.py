@@ -15,6 +15,7 @@ pio.renderers.default = "browser"
 from scipy.stats import skew
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
+from statsmodels.tsa.stattools import adfuller
 
 direnv.load()
 pd.options.display.max_rows = 10
@@ -87,13 +88,10 @@ full_dat = input_dat.merge(output_dat, how='left', on=['time', 'coin'])
 #    ASSIGN VARIABLES     #
 ###########################
 
-# CAN LOOP THROUGH VARIATIONS
-pred_var = X[1]
-resp_var = Y[0]
 skew_t_periods = [168, 168]
 zscore_t_periods = [672, 672]
 
-Number_Observations_Time(data=full_dat[['time', 'coin', pred_var]], var_name=pred_var)
+Number_Observations_Time(data=full_dat[['time', 'coin', X[1]]], var_name=X[1])
 
 ###############################
 # PREPARE PREDICTOR VARIABLES #
@@ -125,11 +123,28 @@ full_dat, rmoutlier_features = full_dat[0], full_dat[1]
 predictors = skew_features + trailing_zscore_features + xscore_features + norm_features
 full_dat = Create_Bins(data=full_dat, GroupBy=['time'], variables=predictors)
 full_dat, predictors_bins = full_dat[0], full_dat[1]
+
+responses = Y + rmoutlier_features
+
+################################
+# STORE DATA TO SAVE RERUNNING #
+################################
+
 # full_dat.to_csv('dat/processed_dat.csv', index=False)
+full_dat = pd.read_csv('dat/processed_dat.csv')
+
+predictors = ['volume_1h_usd_skew_7d', 'ret_1h_neutral_skew_7d', 'volume_1h_usd_skew_7d_zscore_28d',
+              'ret_1h_neutral_skew_7d_zscore_28d', 'volume_1h_usd_skew_7d_xzscore', 'ret_1h_neutral_skew_7d_xzscore',
+              'volume_1h_usd_skew_7d_zscore_28d_tanh', 'ret_1h_neutral_skew_7d_zscore_28d_tanh']
+
+responses = ['fwd_ret_6h_neutral', 'fwd_ret_6h', 'fwd_ret_6h_neutral_rmoutliers', 'fwd_ret_6h_rmoutliers']
 
 ###################################
 # TEST PREDICTORS X VS RESPONSE Y #
 ###################################
+
+pred_var = predictors[1]
+resp_var = responses[1]
 
 # FOR PREDICTOR X
 # look at distribution (hist) of PREDICTOR X
@@ -144,45 +159,33 @@ full_dat, predictors_bins = full_dat[0], full_dat[1]
 # discretise / create bins of RESPONSE Y
 # transition matrix to understand transition between state i in PREDICTOR X to the state j in RESPONSE Y
 
-
-
 ##########################
 # ret_1h_neutral_skew_7d #
 ##########################
 
-# SAMPLE COINs LOOK AT PREDICTOR THROUGH TIME
-tmp = full_dat.loc[full_dat['coin'] == 'BTC']
-px.line(tmp, x='time', y='ret_1h_neutral_skew_7d')
-# some very extreme skews, maybe the tails more interesting than the middles
+X = full_dat.loc[:, ['time', 'coin', pred_var]]
+X = pd.pivot(data=X, index='time', columns='coin', values=pred_var)
 
-tmp = full_dat.sample(100000)
-px.histogram(tmp, 'ret_1h_neutral_skew_7d', nbins=15)
+Y = full_dat.loc[:, ['time', 'coin', resp_var]]
+Y = pd.pivot(data=Y, index='time', columns='coin', values=resp_var)
+
+sample_coin = Sample_Data(full_dat, column='coin', n_sample=1)
+
+# look at distribution (hist) of PREDICTOR X
+px.histogram(X, nbins=15)
+# look through time e.g. per sample of coins get a feel
+# https://stackoverflow.com/questions/55545501/how-to-perform-time-series-analysis-that-contains-multiple-groups-in-python-usin
+px.line(full_dat.loc[full_dat['coin'] == 'BTC'], x='time', y=pred_var)
+# adfuller test of stationarity (mean variance through time) to ensure properties don't change through t
+X = full_dat.groupby('time')[pred_var].median()
+px.line(X)
+
 px.scatter(tmp, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral', trendline='ols')
 
 bin_smy = Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_bins', output_var='fwd_ret_6h')
 bin_smy.iloc[:,1]*100
 
-##################################
-# ret_1h_neutral_skew_7d_xzscore #
-##################################
-
-tmp = full_dat.loc[full_dat['coin'] == 'BTC']
-px.line(tmp, x='time', y='ret_1h_neutral_skew_7d_xzscore')
-
-tmp = full_dat.sample(100000)
-px.histogram(tmp, 'ret_1h_neutral_skew_7d_xzscore', nbins=15)
-px.scatter(tmp, x='ret_1h_neutral_skew_7d_xzscore', y='fwd_ret_6h_neutral', trendline='ols')
-# this looks better. honing in on this stronger trend better R2
-bin_smy = Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_xzscore_bins', output_var='fwd_ret_6h')
-print(bin_smy.iloc[:,1]*100)
-
-# double check this + output from both bin_smy
-full_dat['ret_1h_neutral_skew_7d_xzscore_bins'].value_counts()
 
 # Loose ends / Reminders
-# # factor in 1h constraint for putting on positions
-
-# do the plot of predictor vs output -- distribution + predictor values for each bucket
-
-
-
+# factor in 1h constraint for putting on positions
+# check stability of bins calc
