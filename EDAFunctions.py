@@ -12,6 +12,8 @@ import plotly.graph_objects as go
 from plotly.graph_objects import *
 import plotly.io as pio
 pio.renderers.default = "browser"
+from plotly.subplots import make_subplots
+from itertools import product
 
 direnv.load()
 pd.options.display.max_rows = 10
@@ -302,5 +304,47 @@ def Plot_Bins(data, bin_var, output_var):
     return bins_smy
 
 
+def Missing_Values_Plot(data):
+    data = data.copy(deep=True)
+    data[data.notnull()] = 0
+    data[data.isnull()] = 1
+    data[data == 0] = np.nan
+    col_index = list(range(data.shape[1]))
 
+    data = data + col_index
+
+    fig = px.line(data, x=data.index, y=data.columns, title='Missing values')
+    fig.update_layout(yaxis_title='Coin')
+    fig.show()
+
+
+
+def Mean_Variance_Plot(data: pd.DataFrame, t_window: int, min_obs: float, len_grid: int):
+    data = data.copy(deep=True)
+
+    if data.shape[1] > 10:
+        sample_cols = list(data.columns)
+        sample_cols = random.sample(sample_cols, len_grid*len_grid)
+        data = data[sample_cols]
+
+    r_mean = data.rolling(t_window, min_periods=round(min_obs * t_window)).mean()
+    r_std = data.rolling(t_window, min_periods=round(min_obs * t_window)).std()
+
+    fig = make_subplots(rows=len_grid, cols=len_grid, start_cell="bottom-left")
+
+    grid_locs = list(range(1, len_grid+1)) # assuming equal grid for now
+    grid_locs = list(product(grid_locs, grid_locs))
+
+    for i in grid_locs:
+        plot_number = grid_locs.index(i)
+        r_mean_i = r_mean.iloc[:, plot_number]
+        r_std_i = r_std.iloc[:, plot_number]
+
+        fig.add_trace(go.Scatter(x=r_mean_i.index, y=r_mean_i, name=f'{r_mean_i.name}_mean'),
+                      row=i[0], col=i[1])
+
+        fig.add_trace(go.Scatter(x=r_std_i.index, y=r_std_i, name=f'{r_std_i.name}_std'),
+                      row=i[0], col=i[1])
+
+    fig.show()
 

@@ -9,12 +9,14 @@ from CoreFunctions import *
 from EDAFunctions import *
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from plotly.graph_objects import *
 import plotly.io as pio
 pio.renderers.default = "browser"
 from scipy.stats import skew
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
+from itertools import product
 from statsmodels.tsa.stattools import adfuller
 
 direnv.load()
@@ -143,9 +145,6 @@ responses = ['fwd_ret_6h_neutral', 'fwd_ret_6h', 'fwd_ret_6h_neutral_rmoutliers'
 # TEST PREDICTORS X VS RESPONSE Y #
 ###################################
 
-pred_var = predictors[1]
-resp_var = responses[1]
-
 # FOR PREDICTOR X
 # look at distribution (hist) of PREDICTOR X
 # look through time e.g. per sample of coins get a feel
@@ -159,9 +158,13 @@ resp_var = responses[1]
 # discretise / create bins of RESPONSE Y
 # transition matrix to understand transition between state i in PREDICTOR X to the state j in RESPONSE Y
 
-##########################
-# ret_1h_neutral_skew_7d #
-##########################
+############################
+# FOR DIFFERENT PREDICTORS #
+############################
+
+pred_var = predictors[4]
+resp_var = responses[1]
+
 
 X = full_dat.loc[:, ['time', 'coin', pred_var]]
 X = pd.pivot(data=X, index='time', columns='coin', values=pred_var)
@@ -169,21 +172,38 @@ X = pd.pivot(data=X, index='time', columns='coin', values=pred_var)
 Y = full_dat.loc[:, ['time', 'coin', resp_var]]
 Y = pd.pivot(data=Y, index='time', columns='coin', values=resp_var)
 
-sample_coin = Sample_Data(full_dat, column='coin', n_sample=1)
+# universe has better representation 2019-2020+
+Missing_Values_Plot(data=X)
+
+# can visualise stationarity of mean & variance
+Mean_Variance_Plot(data=X, t_window=90*24, min_obs=0.5, len_grid=2)
+
+
+# https://medium.com/@dhirajreddy13/stock-price-prediction-and-forecast-using-lstm-and-arima-52db753a23c7
+# https://www.business-science.io/code-tools/2021/07/19/modeltime-panel-data.html
 
 # look at distribution (hist) of PREDICTOR X
 px.histogram(X, nbins=15)
 # look through time e.g. per sample of coins get a feel
 # https://stackoverflow.com/questions/55545501/how-to-perform-time-series-analysis-that-contains-multiple-groups-in-python-usin
-px.line(full_dat.loc[full_dat['coin'] == 'BTC'], x='time', y=pred_var)
+
 # adfuller test of stationarity (mean variance through time) to ensure properties don't change through t
-X = full_dat.groupby('time')[pred_var].median()
+X = full_dat.groupby('time')[pred_var].mean()
 px.line(X)
 
 px.scatter(tmp, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral', trendline='ols')
 
 bin_smy = Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_bins', output_var='fwd_ret_6h')
 bin_smy.iloc[:,1]*100
+
+# https://www.kaggle.com/code/andreshg/timeseries-analysis-a-complete-guide
+
+
+# could neutral returns be the solution here? however, as seen before - missing data points within the universe
+# screws up the market return which affects the sample
+# i do need to make sure the response variable is stationary as well the predictors
+
+
 
 
 # Loose ends / Reminders
