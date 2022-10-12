@@ -14,7 +14,7 @@ import plotly.io as pio
 pio.renderers.default = "browser"
 from plotly.subplots import make_subplots
 from itertools import product
-from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.stattools import adfuller, kpss
 
 direnv.load()
 pd.options.display.max_rows = 10
@@ -358,49 +358,75 @@ def Test_Stationarity(data: pd.DataFrame, variable_name: str, sample_size: int):
     :param sample_size: how many timeseries (coins) to test
     :return:
     """
+    # Dickey-Fuller: Runs into problems when there's autocorrelation
+    # Augmented Dickey-Fuller: Handles more complex models but has a fairly high false positive error
+    # Kwiatkowski-Phillips-Schmidt-Shin (KPSS): Also has a fairly high false positive (Type I) error
+    # can be used in conjuction with ADF for more confident decisions
+
     data = data.copy(deep=True)
 
     sample_coins = random.sample(data.columns.tolist(), sample_size)
-    store = pd.DataFrame()
+    adfuller_store = pd.DataFrame()
+    kpss_store = pd.DataFrame()
     for s in sample_coins:
 
 
         ts = data.loc[:, s].dropna()
-        result = adfuller(ts)
+        result = adfuller(ts, autolag='AIC')
 
-        # Null hypothesis: Non Stationarity exists in the series
-        # Alternative Hypothesis: Stationarity exists in the series
+        # Null hypothesis: Non Stationarity exists in the series (Unit Root Present)
+
+        # Test Statistic < Critical Value => Reject Null
+        # P-Value =< Alpha(.05) => Reject Null
 
         parse_output = {
-            # Critical value of the data in case (adf statistic)
-            'critical_value': result[0],
-            # Probability that null hypothesis will not be rejected(p-value)
+            'test_type': 'adfuller',
+            'test_statistic': result[0],
             'p_value': result[1],
-            # Number of lags used in regression to determine t-statistic
-            # So there are no auto correlations going back to 'X' periods here
-            'n_lags_tstat': result[2],
-            # Number of observations used in the analysis
+            'n_lags': result[2],
             'n_observations': result[3],
-            # T values corresponding to adfuller test
-            'tstat_1%': result[4]['1%'],
-            'tstat_5%': result[4]['5%'],
-            'tstat_10%': result[4]['10%'],
-            # REJECT NULL hypothesis if critical value < tvalues  (at 1%,5%and 10% confidence intervals),
-            # REJECT NULL HYPOTHESIS = STATIONARY DATA
-            'critical_value<tstat_1%': result[0] < result[4]['1%'],
-            'critical_value<tstat_5%': result[0] < result[4]['5%'],
-            'critical_value<tstat_10%': result[0] < result[4]['10%'],
-            # Stationary if p value < 0.01, 0.05, 0.1  (1%,5% and 10% confidence intervals)
-            # null hypothesis can be rejected
-            'pvalue_confidence_1%': result[1] < 0.01,
-            'pvalue_confidence_5%': result[1] < 0.05,
-            'pvalue_confidence_10%': result[1] < 0.1
+            'critical_value_1%': result[4]['1%'],
+            'critical_value_5%': result[4]['5%'],
+            'critical_value_10%': result[4]['10%'],
+            'test_statistic<critical_value_1%': result[0] < result[4]['1%'],
+            'test_statistic<critical_value_5%': result[0] < result[4]['5%'],
+            'test_statistic<critical_value_10%': result[0] < result[4]['10%'],
+            'pvalue<signif_level_1%': result[1] < 0.01,
+            'pvalue<signif_level_5%': result[1] < 0.05,
+            'pvaluesignif_level_10%': result[1] < 0.1
         }
+
         parse_output = {'variable': variable_name, 'coin': s} | parse_output
         parse_output = pd.DataFrame([parse_output])
+        adfuller_store = pd.concat([adfuller_store, parse_output], axis=0)
 
-        store = pd.concat([store, parse_output], axis=0)
+        # Null Hypothesis: Data is Stationary/Trend Stationary
+        # Test Statistic > Critical Value => Reject Null
+        # P-Value =< Alpha(.05) => Reject Null
 
-    return store
+        result = kpss(ts, regression='c')
+
+        parse_output = {
+            'test_type': 'kpss',
+            'test_statistic': result[0],
+            'p_value': result[1],
+            'n_lags': result[2],
+            'n_observations': np.nan,
+            'critical_value_1%': result[3]['1%'],
+            'critical_value_5%': result[3]['5%'],
+            'critical_value_10%': result[3]['10%'],
+            'test_statistic>critical_value_1%': result[0] > result[3]['1%'],
+            'test_statistic>critical_value_5%': result[0] > result[3]['5%'],
+            'test_statistic>critical_value_10%': result[0] > result[3]['10%'],
+            'pvalue<signif_level_1%': result[1] < 0.01,
+            'pvalue<signif_level_5%': result[1] < 0.05,
+            'pvalue<signif_level_10%': result[1] < 0.1
+        }
+
+        parse_output = {'variable': variable_name, 'coin': s} | parse_output
+        parse_output = pd.DataFrame([parse_output])
+        kpss_store = pd.concat([kpss_store, parse_output], axis=0)
+
+    return adfuller_store, kpss_store
 
 

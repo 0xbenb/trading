@@ -162,7 +162,7 @@ responses = ['fwd_ret_6h_neutral', 'fwd_ret_6h', 'fwd_ret_6h_neutral_rmoutliers'
 # FOR DIFFERENT PREDICTORS #
 ############################
 
-pred_var = predictors[4]
+pred_var = predictors[3]
 resp_var = responses[1]
 
 
@@ -180,8 +180,11 @@ Mean_Variance_Plot(data=X, t_window=90*24, min_obs=0.5, len_grid=2)
 
 # test stationarity
 Mean_Variance_Plot(data=X, t_window=90*24, min_obs=0.5, len_grid=1)
-Test_Stationarity(data=X, variable_name=pred_var, sample_size=5)
+res = Test_Stationarity(data=X, variable_name=pred_var, sample_size=5)
+# adfuller you want output to be TRUE i.e. CAN't reject NULL => stationary
+# kpss you want output to be FALSE i.e. CAN reject NULL => stationary
 
+# understand autocorrelation
 
 
 # look at distribution (hist) of PREDICTOR X
@@ -214,5 +217,5 @@ bin_smy.iloc[:,1]*100
 # Docs & Reference
 # https://medium.com/@dhirajreddy13/stock-price-prediction-and-forecast-using-lstm-and-arima-52db753a23c7
 # https://www.business-science.io/code-tools/2021/07/19/modeltime-panel-data.html
-
+# https://www.kaggle.com/code/nholloway/stationarity-smoothing-and-seasonality/notebook
 
