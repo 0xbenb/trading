@@ -178,14 +178,14 @@ Missing_Values_Plot(data=X)
 # can visualise stationarity of mean & variance
 Mean_Variance_Plot(data=X, t_window=90*24, min_obs=0.5, len_grid=2)
 
+# test stationarity
+Mean_Variance_Plot(data=X, t_window=90*24, min_obs=0.5, len_grid=1)
+Test_Stationarity(data=X, variable_name=pred_var, sample_size=5)
 
-# https://medium.com/@dhirajreddy13/stock-price-prediction-and-forecast-using-lstm-and-arima-52db753a23c7
-# https://www.business-science.io/code-tools/2021/07/19/modeltime-panel-data.html
+
 
 # look at distribution (hist) of PREDICTOR X
 px.histogram(X, nbins=15)
-# look through time e.g. per sample of coins get a feel
-# https://stackoverflow.com/questions/55545501/how-to-perform-time-series-analysis-that-contains-multiple-groups-in-python-usin
 
 # adfuller test of stationarity (mean variance through time) to ensure properties don't change through t
 X = full_dat.groupby('time')[pred_var].mean()
@@ -209,3 +209,10 @@ bin_smy.iloc[:,1]*100
 # Loose ends / Reminders
 # factor in 1h constraint for putting on positions
 # check stability of bins calc
+
+
+# Docs & Reference
+# https://medium.com/@dhirajreddy13/stock-price-prediction-and-forecast-using-lstm-and-arima-52db753a23c7
+# https://www.business-science.io/code-tools/2021/07/19/modeltime-panel-data.html
+
+

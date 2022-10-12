@@ -14,6 +14,7 @@ import plotly.io as pio
 pio.renderers.default = "browser"
 from plotly.subplots import make_subplots
 from itertools import product
+from statsmodels.tsa.stattools import adfuller
 
 direnv.load()
 pd.options.display.max_rows = 10
@@ -347,4 +348,59 @@ def Mean_Variance_Plot(data: pd.DataFrame, t_window: int, min_obs: float, len_gr
                       row=i[0], col=i[1])
 
     fig.show()
+
+
+def Test_Stationarity(data: pd.DataFrame, variable_name: str, sample_size: int):
+    """
+
+    :param data: data block of timeseries for a single variable with multiple coins
+    :param variable_name: string of variable name being tested
+    :param sample_size: how many timeseries (coins) to test
+    :return:
+    """
+    data = data.copy(deep=True)
+
+    sample_coins = random.sample(data.columns.tolist(), sample_size)
+    store = pd.DataFrame()
+    for s in sample_coins:
+
+
+        ts = data.loc[:, s].dropna()
+        result = adfuller(ts)
+
+        # Null hypothesis: Non Stationarity exists in the series
+        # Alternative Hypothesis: Stationarity exists in the series
+
+        parse_output = {
+            # Critical value of the data in case (adf statistic)
+            'critical_value': result[0],
+            # Probability that null hypothesis will not be rejected(p-value)
+            'p_value': result[1],
+            # Number of lags used in regression to determine t-statistic
+            # So there are no auto correlations going back to 'X' periods here
+            'n_lags_tstat': result[2],
+            # Number of observations used in the analysis
+            'n_observations': result[3],
+            # T values corresponding to adfuller test
+            'tstat_1%': result[4]['1%'],
+            'tstat_5%': result[4]['5%'],
+            'tstat_10%': result[4]['10%'],
+            # REJECT NULL hypothesis if critical value < tvalues  (at 1%,5%and 10% confidence intervals),
+            # REJECT NULL HYPOTHESIS = STATIONARY DATA
+            'critical_value<tstat_1%': result[0] < result[4]['1%'],
+            'critical_value<tstat_5%': result[0] < result[4]['5%'],
+            'critical_value<tstat_10%': result[0] < result[4]['10%'],
+            # Stationary if p value < 0.01, 0.05, 0.1  (1%,5% and 10% confidence intervals)
+            # null hypothesis can be rejected
+            'pvalue_confidence_1%': result[1] < 0.01,
+            'pvalue_confidence_5%': result[1] < 0.05,
+            'pvalue_confidence_10%': result[1] < 0.1
+        }
+        parse_output = {'variable': variable_name, 'coin': s} | parse_output
+        parse_output = pd.DataFrame([parse_output])
+
+        store = pd.concat([store, parse_output], axis=0)
+
+    return store
+
 
