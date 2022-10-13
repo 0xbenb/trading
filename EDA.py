@@ -156,25 +156,21 @@ X = pd.pivot(data=X, index='time', columns='coin', values=pred_var)
 Y = full_dat.loc[:, ['time', 'coin', resp_var]]
 Y = pd.pivot(data=Y, index='time', columns='coin', values=resp_var)
 
-##################
-# MISSING VALUES #
-##################
+
+# MISSING VALUES
 Missing_Values_Plot(data=X)
 # universe has better representation 2019-2020+
 
-#############################
-# DISTRIBUTION OF PREDICTOR #
-#############################
+
+# DISTRIBUTION OF PREDICTOR
 px.histogram(X, nbins=15)
 
-##########################
-# VISUALISE STATIONARITY #
-##########################
+
+# VISUALISE STATIONARITY
 Mean_Variance_Plot(data=X, t_window=90*24, min_obs=0.5, len_grid=2)
 
-#####################
-# TEST STATIONARITY #
-#####################
+
+# TEST STATIONARITY
 res = Test_Stationarity(data=X, variable_name=pred_var, sample_size=5)
 
 # adfuller you want output to be TRUE i.e. CAN't reject NULL => stationary
@@ -182,9 +178,8 @@ res = Test_Stationarity(data=X, variable_name=pred_var, sample_size=5)
 # it makes sense variables are stationary as they are built from neutral variables i.e. stripping out market movement
 # or standardising / normalising approaches applied
 
-##############################
-# UNDERSTAND AUTOCORRELATION #
-##############################
+
+# UNDERSTAND AUTOCORRELATION
 Autocorrelation_Plot(X['DOGE'])
 Autocorrelation_Plot(X['DOGE'], plot_pacf=True)
 # https://www.kaggle.com/code/iamleonie/time-series-interpreting-acf-and-pacf
@@ -192,9 +187,9 @@ Autocorrelation_Plot(X['DOGE'], plot_pacf=True)
 # i suppose one thing this means is good stability of the signal
 # need to factor in this autocorrelation with model building e.g. autoregression
 
-#####################
-# TRANSITION MATRIX #
-#####################
+
+# TRANSITION MATRIX
+
 
 
 
