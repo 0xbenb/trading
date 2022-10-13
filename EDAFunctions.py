@@ -15,6 +15,7 @@ pio.renderers.default = "browser"
 from plotly.subplots import make_subplots
 from itertools import product
 from statsmodels.tsa.stattools import adfuller, kpss
+from statsmodels.tsa.stattools import acf, pacf
 
 direnv.load()
 pd.options.display.max_rows = 10
@@ -298,8 +299,10 @@ def Plot_Bins(data, bin_var, output_var):
     data[f'{output_var}_neutral'] = data[output_var] - data[f'{output_var}_median']
 
     bins_smy = data.groupby(bin_var)[f'{output_var}_neutral'].median().reset_index()
+    bins_smy[f'{output_var}_neutral'] = bins_smy[f'{output_var}_neutral'] * 100
 
-    fig = px.bar(bins_smy, x=bin_var, y=f'{output_var}_neutral')
+    fig = px.bar(bins_smy, x=bin_var, y=f'{output_var}_neutral', labels={'y':'test'}).\
+        update_layout(yaxis={"title": f'{output_var}_neutral%'})
     fig.show()
 
     return bins_smy
@@ -336,6 +339,7 @@ def Mean_Variance_Plot(data: pd.DataFrame, t_window: int, min_obs: float, len_gr
     grid_locs = list(range(1, len_grid+1)) # assuming equal grid for now
     grid_locs = list(product(grid_locs, grid_locs))
 
+    data = data.loc[:,"XMR"]
     for i in grid_locs:
         plot_number = grid_locs.index(i)
         r_mean_i = r_mean.iloc[:, plot_number]
@@ -428,5 +432,27 @@ def Test_Stationarity(data: pd.DataFrame, variable_name: str, sample_size: int):
         kpss_store = pd.concat([kpss_store, parse_output], axis=0)
 
     return adfuller_store, kpss_store
+
+
+def Autocorrelation_Plot(series, plot_pacf=False):
+    corr_array = pacf(series.dropna(), alpha=0.05) if plot_pacf else acf(series.dropna(), alpha=0.05)
+    lower_y = corr_array[1][:, 0] - corr_array[0]
+    upper_y = corr_array[1][:, 1] - corr_array[0]
+
+    fig = go.Figure()
+    [fig.add_scatter(x=(x, x), y=(0, corr_array[0][x]), mode='lines', line_color='#3f3f3f')
+     for x in range(len(corr_array[0]))]
+    fig.add_scatter(x=np.arange(len(corr_array[0])), y=corr_array[0], mode='markers', marker_color='#1f77b4',
+                    marker_size=12)
+    fig.add_scatter(x=np.arange(len(corr_array[0])), y=upper_y, mode='lines', line_color='rgba(255,255,255,0)')
+    fig.add_scatter(x=np.arange(len(corr_array[0])), y=lower_y, mode='lines', fillcolor='rgba(32, 146, 230,0.3)',
+                    fill='tonexty', line_color='rgba(255,255,255,0)')
+    fig.update_traces(showlegend=False)
+    fig.update_xaxes(range=[-1, 42])
+    fig.update_yaxes(zerolinecolor='#000000')
+
+    title = 'Partial Autocorrelation (PACF)' if plot_pacf else 'Autocorrelation (ACF)'
+    fig.update_layout(title=title)
+    fig.show()
 
 

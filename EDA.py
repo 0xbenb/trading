@@ -18,6 +18,8 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 from itertools import product
 from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.ar_model import AutoReg
+from statsmodels.tsa.arima_model import ARMA
 
 direnv.load()
 pd.options.display.max_rows = 10
@@ -145,26 +147,8 @@ responses = ['fwd_ret_6h_neutral', 'fwd_ret_6h', 'fwd_ret_6h_neutral_rmoutliers'
 # TEST PREDICTORS X VS RESPONSE Y #
 ###################################
 
-# FOR PREDICTOR X
-# look at distribution (hist) of PREDICTOR X
-# look through time e.g. per sample of coins get a feel
-# adfuller test of stationarity (mean variance through time) to ensure properties don't change through t
-# study outliers
-# discretise / create bins of PREDICTOR X
-# transition matrix for PREDICTOR X to understand probability that it goes from state i, j for FEATURE X
-
-# COMBINE PREDICTOR X WITH RESPONSE Y
-# plot expected value of RESPONSE Y vs discretised PREDICTOR X
-# discretise / create bins of RESPONSE Y
-# transition matrix to understand transition between state i in PREDICTOR X to the state j in RESPONSE Y
-
-############################
-# FOR DIFFERENT PREDICTORS #
-############################
-
-pred_var = predictors[3]
+pred_var = predictors[5]
 resp_var = responses[1]
-
 
 X = full_dat.loc[:, ['time', 'coin', pred_var]]
 X = pd.pivot(data=X, index='time', columns='coin', values=pred_var)
@@ -172,40 +156,45 @@ X = pd.pivot(data=X, index='time', columns='coin', values=pred_var)
 Y = full_dat.loc[:, ['time', 'coin', resp_var]]
 Y = pd.pivot(data=Y, index='time', columns='coin', values=resp_var)
 
-# universe has better representation 2019-2020+
+##################
+# MISSING VALUES #
+##################
 Missing_Values_Plot(data=X)
+# universe has better representation 2019-2020+
 
-# can visualise stationarity of mean & variance
-Mean_Variance_Plot(data=X, t_window=90*24, min_obs=0.5, len_grid=2)
-
-# test stationarity
-Mean_Variance_Plot(data=X, t_window=90*24, min_obs=0.5, len_grid=1)
-res = Test_Stationarity(data=X, variable_name=pred_var, sample_size=5)
-# adfuller you want output to be TRUE i.e. CAN't reject NULL => stationary
-# kpss you want output to be FALSE i.e. CAN reject NULL => stationary
-
-# understand autocorrelation
-
-
-# look at distribution (hist) of PREDICTOR X
+#############################
+# DISTRIBUTION OF PREDICTOR #
+#############################
 px.histogram(X, nbins=15)
 
-# adfuller test of stationarity (mean variance through time) to ensure properties don't change through t
-X = full_dat.groupby('time')[pred_var].mean()
-px.line(X)
+##########################
+# VISUALISE STATIONARITY #
+##########################
+Mean_Variance_Plot(data=X, t_window=90*24, min_obs=0.5, len_grid=2)
 
-px.scatter(tmp, x='ret_1h_neutral_skew_7d', y='fwd_ret_6h_neutral', trendline='ols')
+#####################
+# TEST STATIONARITY #
+#####################
+res = Test_Stationarity(data=X, variable_name=pred_var, sample_size=5)
 
-bin_smy = Plot_Bins(data=full_dat, bin_var='ret_1h_neutral_skew_7d_bins', output_var='fwd_ret_6h')
-bin_smy.iloc[:,1]*100
+# adfuller you want output to be TRUE i.e. CAN't reject NULL => stationary
+# kpss you want output to be FALSE i.e. CAN reject NULL => stationary
+# it makes sense variables are stationary as they are built from neutral variables i.e. stripping out market movement
+# or standardising / normalising approaches applied
 
-# https://www.kaggle.com/code/andreshg/timeseries-analysis-a-complete-guide
+##############################
+# UNDERSTAND AUTOCORRELATION #
+##############################
+Autocorrelation_Plot(X['DOGE'])
+Autocorrelation_Plot(X['DOGE'], plot_pacf=True)
+# https://www.kaggle.com/code/iamleonie/time-series-interpreting-acf-and-pacf
+# shows high degree of autocorrelation
+# i suppose one thing this means is good stability of the signal
+# need to factor in this autocorrelation with model building e.g. autoregression
 
-
-# could neutral returns be the solution here? however, as seen before - missing data points within the universe
-# screws up the market return which affects the sample
-# i do need to make sure the response variable is stationary as well the predictors
-
+#####################
+# TRANSITION MATRIX #
+#####################
 
 
 
@@ -213,9 +202,15 @@ bin_smy.iloc[:,1]*100
 # factor in 1h constraint for putting on positions
 # check stability of bins calc
 
+# i think it makes sense that the variables i've tested so far are stationary as they are built from neutral rets
+
+# random thoughts
+# correlation of predictors vs output
+# co correlation of predictors
+# covariance of predictors
 
 # Docs & Reference
 # https://medium.com/@dhirajreddy13/stock-price-prediction-and-forecast-using-lstm-and-arima-52db753a23c7
 # https://www.business-science.io/code-tools/2021/07/19/modeltime-panel-data.html
 # https://www.kaggle.com/code/nholloway/stationarity-smoothing-and-seasonality/notebook
-
+# https://www.kaggle.com/code/andreshg/timeseries-analysis-a-complete-guide
