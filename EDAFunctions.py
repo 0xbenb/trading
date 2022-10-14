@@ -462,3 +462,39 @@ def Plot_Transitions(data):
 
     fig = px.line(data, markers=True)
     fig.show()
+
+
+def Prepare_State_Sequences(data, pred_bin):
+    
+    data = data.loc[:, ['time', 'coin', pred_bin]]
+    data = data.fillna(-1)
+    data.set_index(['time', 'coin'], inplace=True)
+    mask = data.groupby(level=['time', 'coin'])[pred_bin].cumsum() >= 0
+    data = data[mask]
+    data[pred_bin] = data[pred_bin].astype(int)
+    sequences = data.groupby('coin').agg({pred_bin: lambda x: list(x)})
+    sequences = sequences[pred_bin].tolist()
+
+    return sequences
+
+def Calculate_Transition_Matrix(sequences):
+    # https://transitionmatrix.readthedocs.io/en/latest/index.html
+    # https://stackoverflow.com/questions/64940314/how-to-create-a-transition-table-from-multiple-sequences
+
+    # Size of the transition array
+    n = max([max(s) for s in sequences]) + 1
+    # Transition array, initially empty
+    arr = np.zeros((n,n), dtype=int)
+    for s in sequences:
+        ind = (s[1:], s[:-1])  # Indices of elements for existing transitions
+        arr[ind] += 1          # Add existing transitions
+    # Normalize by columns and return as a DataFrame
+
+    return pd.DataFrame(arr / arr.sum(axis=0)).rename_axis(index='Next', columns='Current')
+
+
+
+
+
+
+

@@ -194,33 +194,17 @@ from transitionMatrix.utils.converters import to_canonical
 from transitionMatrix.estimators.cohort_estimator import CohortEstimator
 
 # TRANSITION MATRIX
-# https://transitionmatrix.readthedocs.io/en/latest/index.html
 pred_bin = f'{pred_var}_bins'
-input_data = full_dat.loc[:, ['time', 'coin', pred_bin]]
-input_data.rename({'time': 'Time', 'coin': 'ID', pred_bin: 'State'}, axis=1, inplace=True)
-input_data = input_data.fillna(-1)
-input_data.set_index(['Time', 'ID'], inplace=True)
-mask = input_data.groupby(level=['Time','ID'])['State'].cumsum() >= 0
-input_data = input_data[mask]
-input_data['State'] = input_data['State'].astype(int)
-sequences = input_data.groupby('ID').agg({'State': lambda x: list(x)})
-sequences = sequences['State'].tolist()
+sequences = Prepare_State_Sequences(data=full_dat, pred_bin=pred_bin)
 
-# https://stackoverflow.com/questions/64940314/how-to-create-a-transition-table-from-multiple-sequences
-def transitions(allSeq):
-    # Size of the transition array
-    n = max([ max(s) for s in allSeq ]) + 1
-    # Transition array, initially empty
-    arr = np.zeros((n,n), dtype=int)
-    for s in allSeq:
-        ind = (s[1:], s[:-1])  # Indices of elements for existing transitions
-        arr[ind] += 1          # Add existing transitions
-    # Normalize by columns and return as a DataFrame
-    return pd.DataFrame(arr / arr.sum(axis=0)).rename_axis(index='Next', columns='Current')
+tm = Calculate_Transition_Matrix(sequences)
+tm = tm.iloc[1:, 1:]
+tm = tm - 0.2
 
-transitions(sequences)
+px.imshow(tm, color_continuous_scale='RdBu_r')
+# this looks logical and shows that from state to state it is more likely that the next state will be the adjacent state
+# along a continuous scale. looks good
 
-# check the stability of each of the bins through time
 
 
 # Loose ends / Reminders
