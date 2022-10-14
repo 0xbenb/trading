@@ -18,8 +18,7 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 from itertools import product
 from statsmodels.tsa.stattools import adfuller
-from statsmodels.tsa.ar_model import AutoReg
-from statsmodels.tsa.arima_model import ARMA
+
 
 direnv.load()
 pd.options.display.max_rows = 10
@@ -187,23 +186,19 @@ Autocorrelation_Plot(X['DOGE'], plot_pacf=True)
 # i suppose one thing this means is good stability of the signal
 # need to factor in this autocorrelation with model building e.g. autoregression
 
-import transitionMatrix as tm
-from transitionMatrix.utils import transitions_summary
-from transitionMatrix.statespaces.statespace import StateSpace
-from transitionMatrix.utils.converters import to_canonical
-from transitionMatrix.estimators.cohort_estimator import CohortEstimator
 
-# TRANSITION MATRIX
+# TRANSITION MATRIX PREDICTOR
 pred_bin = f'{pred_var}_bins'
 sequences = Prepare_State_Sequences(data=full_dat, pred_bin=pred_bin)
 
 tm = Calculate_Transition_Matrix(sequences)
 tm = tm.iloc[1:, 1:]
-tm = tm - 0.2
 
 px.imshow(tm, color_continuous_scale='RdBu_r')
 # this looks logical and shows that from state to state it is more likely that the next state will be the adjacent state
-# along a continuous scale. looks good
+# along a continuous scale. looks good, essentially confirming the autocorrelation in another way
+
+# TRANSITION MATRIX PREDICTOR VS RESPONSE
 
 
 
