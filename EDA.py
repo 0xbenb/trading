@@ -198,9 +198,17 @@ px.imshow(tm, color_continuous_scale='RdBu_r')
 # this looks logical and shows that from state to state it is more likely that the next state will be the adjacent state
 # along a continuous scale. looks good, essentially confirming the autocorrelation in another way
 
+# can develop this further by looking at longer time intervals
+
+
+# EXPECTED VALUE RESPONSE Y TO PREDICTOR X
+Plot_Bins(data=full_dat, bin_var=pred_bin, output_var=resp_var)
+full_dat[['time', 'coin', pred_bin]][pred_bin].value_counts()
+
 # TRANSITION MATRIX PREDICTOR VS RESPONSE
-
-
+# previous code was setup with a shift of 1 but for this i'm actually going to create the current (i) to next(j)
+# but next (j) is actually going to be the fwd return over some time period discretised
+# will need to tweak the code for that to build state_current --> state_next
 
 # Loose ends / Reminders
 # factor in 1h constraint for putting on positions

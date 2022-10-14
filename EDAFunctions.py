@@ -484,7 +484,7 @@ def Calculate_Transition_Matrix(sequences):
     # Size of the transition array
     n = max([max(s) for s in sequences]) + 1
     # Transition array, initially empty
-    arr = np.zeros((n,n), dtype=int)
+    arr = np.zeros((n, n), dtype=int)
     for s in sequences:
         ind = (s[1:], s[:-1])  # Indices of elements for existing transitions
         arr[ind] += 1          # Add existing transitions
