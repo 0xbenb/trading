@@ -456,3 +456,9 @@ def Autocorrelation_Plot(series, plot_pacf=False):
     fig.show()
 
 
+def Plot_Transitions(data):
+    sample_coin = random.sample(data.columns.tolist(), 1)
+    data = data.loc[:, sample_coin]
+
+    fig = px.line(data, markers=True)
+    fig.show()
